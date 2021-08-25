@@ -567,12 +567,8 @@ class App(ttk.Frame):
             self.current_image.export_bmp(path)
 
 
-# if __name__ == "__main__":
-#     app = App(Tk())
-#     app.pack(fill="both", expand=True)
+if __name__ == "__main__":
+    app = App(Tk())
+    app.pack(fill="both", expand=True)
 
-#     app.mainloop()
-
-f = File("tetris.h")
-f.images[-1].import_bmp("tetrisbg2.bmp")
-f.export("tetris2.h")
+    app.mainloop()
