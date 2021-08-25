@@ -65,6 +65,9 @@ class App(ttk.Frame):
     def __init__(self, parent) -> None:
         super().__init__(parent)
 
+        parent.option_add("*tearOff", FALSE)
+        parent.resizable(False, False)
+
         self.parent = parent
         self.current_file = None
 
@@ -76,6 +79,13 @@ class App(ttk.Frame):
         self.grid_columnconfigure(0, weight=1)
 
         self.open_file(None)
+
+    @property
+    def current_image(self) -> Optional[Image]:
+        if self.explorer.focus() == "":
+            return None
+        else:
+            return self.current_file.images[int(self.explorer.focus())]
 
     def make_menus(self) -> Tuple[Menu, Menu]:
         menubar = Menu(self.parent)
@@ -103,31 +113,44 @@ class App(ttk.Frame):
         )
 
         menu_edit = Menu(menubar)
-        menubar.add_cascade(menu=menu_edit, label="Edit")
+        menubar.add_cascade(menu=menu_edit, label="Image")
         menu_edit.add_command(
-            label="New image",
+            label="New image...",
             command=self.add_image,
             state="disabled",
         )
         menu_edit.add_command(
-            label="Delete image",
+            label="Delete",
             command=self.delete_image,
+            state="disabled",
+        )
+        menu_edit.add_command(
+            label="Edit name",
+            command=self.edit_image_name,
+            state="disabled",
+        )
+        menu_edit.add_command(
+            label="Move up",
+            command=self.move_image_up,
+            state="disabled",
+        )
+        menu_edit.add_command(
+            label="Move down",
+            command=self.move_image_down,
+            state="disabled",
+        )
+        menu_edit.add_command(
+            label="Import bmp...",
+            command=self.import_bmp,
+            state="disabled",
+        )
+        menu_edit.add_command(
+            label="Export bmp...",
+            command=self.export_bmp,
             state="disabled",
         )
 
         return menu_file, menu_edit
-
-    def update_menus(self) -> None:
-        for file_index in [2, 3, 4]:
-            self.menu_file.entryconfigure(
-                file_index,
-                state=("normal" if self.current_file is not None else "disabled"),
-            )
-        for edit_index in [0, 1]:
-            self.menu_edit.entryconfigure(
-                edit_index,
-                state=("normal" if self.current_image is not None else "disabled"),
-            )
 
     def make_explorer(self) -> ttk.Treeview:
         explorer_container = ttk.Frame(self)
@@ -153,13 +176,63 @@ class App(ttk.Frame):
         return explorer
 
     def make_canvas(self) -> Canvas:
-        view = ttk.Frame(self, height=500, width=500)
+        view = ttk.Frame(self, height=650, width=650)
         view.grid(column=1, row=0, sticky=(N, S, E, W))
 
-        canvas = Canvas(view, width=200, height=200, background="white")
-        canvas.grid(column=0, row=0, sticky=(N, S, E, W))
+        canvas = Canvas(view, width=20, height=20, background="white")
+        canvas.place(in_=view, anchor="c", relx=0.5, rely=0.5)
 
         return canvas
+
+    def update(self, *args) -> None:
+        self.update_menus()
+        self.update_canvas()
+
+    def update_menus(self) -> None:
+        for file_index in [2, 3, 4]:
+            self.menu_file.entryconfigure(
+                file_index,
+                state=("normal" if self.current_file is not None else "disabled"),
+            )
+        for edit_index in [0]:
+            self.menu_edit.entryconfigure(
+                edit_index,
+                state=("normal" if self.current_file is not None else "disabled"),
+            )
+        for edit_index in [1, 2, 3, 4, 5, 6]:
+            self.menu_edit.entryconfigure(
+                edit_index,
+                state=("normal" if self.current_image is not None else "disabled"),
+            )
+
+    def update_canvas(self) -> None:
+        image = self.current_image
+        scale = 3
+        if image is not None:
+            self.canvas.configure(
+                width=(image.width * scale),
+                height=(image.height * scale),
+                background="white",
+            )
+            self.canvas.create_rectangle(
+                0,
+                0,
+                (image.width * scale),
+                (image.height * scale),
+                fill="white",
+                outline="",
+            )
+            for x in range(image.width):
+                for y in range(image.height):
+                    if image.get_pixel(x, y):
+                        self.canvas.create_rectangle(
+                            x * scale,
+                            y * scale,
+                            (x + 1) * scale,
+                            (y + 1) * scale,
+                            fill="black",
+                            outline="",
+                        )
 
     def save_file(self, path: Optional[str] = None) -> None:
         if path == "":
@@ -196,52 +269,24 @@ class App(ttk.Frame):
     def delete_image(self) -> None:
         pass  # TODO
 
-    @property
-    def current_image(self) -> Optional[Image]:
-        if self.explorer.focus() == "":
-            return None
-        else:
-            return self.current_file.images[int(self.explorer.focus())]
+    def edit_image_name(self) -> None:
+        pass  # TODO
 
-    def update_canvas(self) -> None:
-        image = self.current_image
-        scale = 3
-        if image is not None:
-            self.canvas.configure(
-                width=(image.width * scale),
-                height=(image.height * scale),
-                background="white",
-            )
-            self.canvas.create_rectangle(
-                0,
-                0,
-                (image.width * scale),
-                (image.height * scale),
-                fill="white",
-                outline="",
-            )
-            for x in range(image.width):
-                for y in range(image.height):
-                    if image.get_pixel(x, y):
-                        self.canvas.create_rectangle(
-                            x * scale,
-                            y * scale,
-                            (x + 1) * scale,
-                            (y + 1) * scale,
-                            fill="black",
-                            outline="",
-                        )
+    def move_image_up(self) -> None:
+        pass  # TODO
 
-    def update(self, *args) -> None:
-        self.update_menus()
-        self.update_canvas()
+    def move_image_down(self) -> None:
+        pass  # TODO
+
+    def import_bmp(self) -> None:
+        pass  # TODO
+
+    def export_bmp(self) -> None:
+        pass  # TODO
 
 
 if __name__ == "__main__":
-    root = Tk()
-    root.option_add("*tearOff", FALSE)
-
-    app = App(root)
+    app = App(Tk())
     app.pack(fill="both", expand=True)
 
     app.mainloop()
