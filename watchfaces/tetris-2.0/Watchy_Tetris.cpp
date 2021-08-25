@@ -46,7 +46,8 @@ void WatchyTetris::drawWatchFace()
     display.drawBitmap(181, 81, tetris_small_nums[(int)(VBAT * 100) % 10], 8, 8, GxEPD_BLACK);
 
     //Date
-    display.drawBitmap(151, 111, tetris_small_nums[currentTime.Month / 10], 8, 8, GxEPD_BLACK);
+    if (currentTime.Month > 10)
+        display.drawBitmap(151, 111, tetris_small_nums[currentTime.Month / 10], 8, 8, GxEPD_BLACK);
     display.drawBitmap(161, 111, tetris_small_nums[currentTime.Month % 10], 8, 8, GxEPD_BLACK);
     display.drawBitmap(171, 111, tetris_small_nums[currentTime.Day / 10], 8, 8, GxEPD_BLACK);
     display.drawBitmap(181, 111, tetris_small_nums[currentTime.Day % 10], 8, 8, GxEPD_BLACK);
