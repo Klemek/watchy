@@ -3,6 +3,7 @@ from tkinter import ttk
 from tkinter import filedialog
 from typing import List, Optional, Tuple
 import re
+import os.path
 from math import sqrt, log2, ceil
 
 
@@ -14,7 +15,12 @@ class Bitmap:
     FILE_TYPES = [("Bitmap Image", "*.bmp"), ("All Files", "*.*")]
 
     @classmethod
-    def get_bmp_data(cls, width: int, data: bytes) -> bytes:
+    def write_bmp(cls, path: str, width: int, data: bytes) -> None:
+        with open(path, mode="wb") as f:
+            f.write(cls.__get_bmp_data(width, data))
+
+    @classmethod
+    def __get_bmp_data(cls, width: int, data: bytes) -> bytes:
         height = len(data) // (width * 3)
         return cls.__get_header(width, height, len(data)) + cls.__format_data(
             width, height, data
@@ -66,13 +72,24 @@ class Bitmap:
                 output_data += bytes([0]) * (4 - line_padding)
         return output_data
 
+    @classmethod
+    def read_bmp(cls, path: str) -> Tuple[int, int, bytes]:
+        with open(path, mode="rb") as f:
+            raw_data = f.read()
+            # TODO
+
 
 class Image:
-    def __init__(self, name: str, width: int, height: int) -> None:
+    def __init__(self, name: str, width: int, height: int, empty: bool = False) -> None:
         self.name = name
         self.width = width
         self.height = height
-        self.data = []
+        self.modified = False
+        if empty:
+            self.data = [0] * (width * height) // 8
+            self.modified = True
+        else:
+            self.data = []
 
     def finalize(self) -> None:
         if self.width == 0:
@@ -101,10 +118,12 @@ class Image:
         position = self.get_position(x, y)
         chunk_id = position // 8
         byte = pow(2, 7 - position % 8)
-        if v:
-            self.data[chunk_id] |= 1 << (7 - position % 8)
-        else:
-            self.data[chunk_id] &= ~(1 << (7 - position % 8))
+        if v != self.get_pixel(x, y):
+            if v:
+                self.data[chunk_id] |= 1 << (7 - position % 8)
+            else:
+                self.data[chunk_id] &= ~(1 << (7 - position % 8))
+            self.modified = True
 
     def get_color_bytes(self) -> bytes:
         output = bytes()
@@ -117,8 +136,11 @@ class Image:
         return output
 
     def export_bmp(self, path: str) -> None:
-        with open(path, mode="wb") as f:
-            f.write(Bitmap.get_bmp_data(self.width, self.get_color_bytes()))
+        Bitmap.write_bmp(path, self.width, self.get_color_bytes())
+
+    def import_bmp(self, path: str) -> None:
+        self.width, self.height, data = Bitmap.read_bmp(path)
+        # TODO
 
 
 class File:
@@ -129,9 +151,19 @@ class File:
         if path is None:
             self.images = []
         else:
-            self.images = self.read_file()
+            self.images = self.__read_file()
 
-    def read_file(self) -> List[Image]:
+    @property
+    def filename(self) -> str:
+        if self.path is None:
+            return None
+        return os.path.basename(self.path)
+
+    @property
+    def modified(self) -> bool:
+        return any(image.modified for image in self.images)
+
+    def __read_file(self) -> List[Image]:
         images = []
 
         current_image = None
@@ -296,14 +328,18 @@ class App(ttk.Frame):
         canvas.place(in_=view, anchor="c", relx=0.5, rely=0.5)
         canvas.bind("<Button-1>", self.click_canvas_b1)
         canvas.bind("<B1-Motion>", self.click_canvas_b1)
+        canvas.bind("<ButtonRelease-1>", self.update)
         canvas.bind("<Button-3>", self.click_canvas_b3)
         canvas.bind("<B3-Motion>", self.click_canvas_b3)
+        canvas.bind("<ButtonRelease-3>", self.update)
 
         return canvas
 
-    def update(self, *args) -> None:
+    def update(self, *args, force: bool = False) -> None:
         self.update_menus()
         self.update_canvas()
+        self.update_explorer(force)
+        self.update_title()
 
     def update_menus(self) -> None:
         for file_index in [2, 3, 4]:
@@ -350,6 +386,41 @@ class App(ttk.Frame):
                             outline="",
                         )
 
+    def update_explorer(self, force: bool = False) -> None:
+        if force:
+            ids = self.explorer.get_children()
+            if len(ids) > 0:
+                self.explorer.delete(*ids)
+
+        if self.current_file is not None:
+            for i, image in enumerate(self.current_file.images):
+                if self.explorer.exists(str(i)):
+                    self.explorer.item(
+                        str(i),
+                        text=f"{image.name}{'*' if image.modified else ''}",
+                        values=[f"{image.width}x{image.height}"],
+                    )
+                else:
+                    self.explorer.insert(
+                        "",
+                        "end",
+                        iid=str(i),
+                        text=f"{image.name}{'*' if image.modified else ''}",
+                        values=[f"{image.width}x{image.height}"],
+                    )
+
+    def update_title(self) -> None:
+        title = "Watchy Image Editor"
+        if self.current_file is not None:
+            title += "- "
+            if self.current_file.path is None:
+                title += "New file"
+            else:
+                title += self.current_file.filename
+            if self.current_file.modified:
+                title += "*"
+        self.parent.title(title)
+
     def click_canvas_b1(self, event):
         self.click_canvas(True, event)
 
@@ -378,27 +449,11 @@ class App(ttk.Frame):
         self.open_file(path)
 
     def open_file(self, path: Optional[str]) -> None:
-        ids = self.explorer.get_children()
-        if len(ids) > 0:
-            self.explorer.delete(*ids)
-
         if path is None:
-            self.parent.title(f"Watchy Image Editor")
             self.current_file = None
         else:
-            self.parent.title(
-                f"Watchy Image Editor - {'New file' if path == '' else path}"
-            )
             self.current_file = File(path if path != "" else None)
-            for i, image in enumerate(self.current_file.images):
-                self.explorer.insert(
-                    "",
-                    "end",
-                    iid=str(i),
-                    text=image.name,
-                    values=[f"{image.width}x{image.height}"],
-                )
-        self.update()
+        self.update(True)
 
     def add_image(self) -> None:
         pass  # TODO
@@ -428,6 +483,7 @@ class App(ttk.Frame):
         )
         if path is not None:
             self.current_image.export_bmp(path)
+
 
 if __name__ == "__main__":
     app = App(Tk())
