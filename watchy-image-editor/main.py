@@ -3,30 +3,103 @@ from tkinter import ttk
 from tkinter import filedialog
 from typing import List, Optional, Tuple
 import re
+from math import sqrt, log2, ceil
 
 
 DRAW_SCALE = 3
 
 
+class Bitmap:
+    HEADER_SIZE = 54
+    FILE_TYPES = [("Bitmap Image", "*.bmp"), ("All Files", "*.*")]
+
+    @classmethod
+    def get_bmp_data(cls, width: int, data: bytes) -> bytes:
+        height = len(data) // (width * 3)
+        return cls.__get_header(width, height, len(data)) + cls.__format_data(
+            width, height, data
+        )
+
+    @classmethod
+    def __get_header(cls, width: int, height: int, data_len: int) -> bytes:
+        header = bytes()
+        # BMP header
+        header += "BM".encode()  # (2) BM
+        header += (cls.HEADER_SIZE + data_len).to_bytes(
+            4, byteorder="little"
+        )  # (4) file size
+        header += bytes([0]) * 4  # (4) application reserved
+        header += (cls.HEADER_SIZE).to_bytes(4, byteorder="little")  # (4) data offset
+        # DIB header
+        header += (40).to_bytes(4, byteorder="little")  # (4) DIB header size
+        header += width.to_bytes(4, byteorder="little")  # (4) width
+        header += height.to_bytes(4, byteorder="little")  # (4) height
+        header += (1).to_bytes(2, byteorder="little")  # (2) color panes
+        header += (24).to_bytes(2, byteorder="little")  # (2) bits per pixel
+        header += bytes([0]) * 4  # (4) BI_RGB, no compression
+        header += (data_len).to_bytes(
+            4, byteorder="little"
+        )  # (4) size of raw bitmap data
+        header += (2835).to_bytes(
+            4, byteorder="little"
+        )  # (4) horizontal print resolution
+        header += (2835).to_bytes(
+            4, byteorder="little"
+        )  # (4) vertical print resolution
+        header += bytes([0]) * 4  # (4) color in palette
+        header += bytes([0]) * 4  # (4) 0 important colors
+        return header
+
+    @classmethod
+    def __format_data(cls, width: int, height: int, data: bytes) -> bytes:
+        size = width * height * 3
+        if len(data) < size:
+            data += bytes([0]) * (size - len(data))
+        elif len(data) > size:
+            data = data[:size]
+        line_padding = (width * 3) % 4
+        if line_padding == 0:
+            return data
+        output_data = bytes()
+        for y in range(height):
+            start = y * 3 * width
+            output_data += data[start : start + width]
+            output_data += bytes([0]) * line_padding
+        return output_data
+
+
 class Image:
-    def __init__(self, comment_name: str, width: int, height: int) -> None:
-        self.comment_name = comment_name
-        self.name = None
+    def __init__(self, name: str, width: int, height: int) -> None:
+        self.name = name
         self.width = width
         self.height = height
         self.data = []
+
+    def finalize(self) -> None:
+        if self.width == 0:
+            pixels = len(self.data) * 8
+            width = int(sqrt(pixels))
+            while width > 1 and pixels % width != 0:
+                width -= 1
+            self.width = width
+            self.height = pixels // width
+        print(f"image '{self.name}': {self.width}x{self.height}")
 
     def add_data(self, raw_data: List[str]) -> None:
         for v in raw_data:
             self.data += [int(v, 16)]
 
+    def get_position(self, x: int, y: int) -> int:
+        real_width = (len(self.data) * 8) // self.height
+        return y * real_width + x
+
     def get_pixel(self, x: int, y: int) -> bool:
-        position = y * self.width + x
+        position = self.get_position(x, y)
         chunk_id = position // 8
         return self.data[chunk_id] & (1 << (7 - position % 8)) > 0
 
     def set_pixel(self, x: int, y: int, v: bool) -> None:
-        position = y * self.width + x
+        position = self.get_position(x, y)
         chunk_id = position // 8
         byte = pow(2, 7 - position % 8)
         if v:
@@ -34,8 +107,20 @@ class Image:
         else:
             self.data[chunk_id] &= ~(1 << (7 - position % 8))
 
+    def get_color_bytes(self) -> bytes:
+        output = bytes()
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.get_pixel(x, y):
+                    output += bytes([0, 0, 0])
+                else:
+                    output += bytes([255, 255, 255])
+        return output
+
 
 class File:
+    FILE_TYPES = [("Header File", "*.h"), ("All Files", "*.*")]
+
     def __init__(self, path: str) -> None:
         self.path = path
         if path is None:
@@ -50,23 +135,25 @@ class File:
 
         with open(self.path) as f:
             for line in f:
-                if current_image is not None:
-                    header = re.match(
-                        r"const unsigned char (\w+) \[\] PROGMEM \= \{",
-                        line,
-                    )
-                    if header:
-                        groups = header.groups()
-                        current_image.name = groups[0]
-                    elif current_image.name is not None:
-                        data = re.match(r"((0x\w+,? ?)+)", line.strip())
-                        if data:
-                            current_image.add_data(
-                                data.groups()[0].strip().strip(",").split(", ")
-                            )
-                        else:
-                            images += [current_image]
-                            current_image = None
+                header = re.match(
+                    r"const unsigned char (\w+) \[\] PROGMEM \= \{",
+                    line,
+                )
+                if header:
+                    groups = header.groups()
+                    if current_image is None:
+                        current_image = Image(groups[0], 0, 0)
+                    current_image.name = groups[0]
+                elif current_image is not None and current_image.name is not None:
+                    data = re.match(r"((0x\w+,? ?)+)", line.strip())
+                    if data:
+                        current_image.add_data(
+                            data.groups()[0].strip().strip(",").split(", ")
+                        )
+                    else:
+                        images += [current_image]
+                        current_image.finalize()
+                        current_image = None
                 comment_header = re.match(r"// '(\w+)', (\d+)x(\d+)px", line)
                 if comment_header:
                     groups = comment_header.groups()
@@ -111,7 +198,12 @@ class App(ttk.Frame):
         menu_file.add_command(label="New", command=lambda: self.open_file(""))
         menu_file.add_command(
             label="Open...",
-            command=lambda: self.open_file(filedialog.askopenfilename()),
+            command=lambda: self.open_file(
+                filedialog.askopenfilename(
+                    filetypes=File.FILE_TYPES,
+                    defaultextension=File.FILE_TYPES,
+                )
+            ),
         )
         menu_file.add_command(
             label="Save",
@@ -119,7 +211,11 @@ class App(ttk.Frame):
         )
         menu_file.add_command(
             label="Save As...",
-            command=lambda: self.save_file(filedialog.asksaveasfilename()),
+            command=lambda: self.save_file(
+                filedialog.asksaveasfilename(
+                    filetypes=File.FILE_TYPES, defaultextension=File.FILE_TYPES
+                )
+            ),
         )
         menu_file.add_command(
             label="Close",
@@ -327,7 +423,20 @@ class App(ttk.Frame):
         pass  # TODO
 
     def export_bmp(self) -> None:
-        pass  # TODO
+        if self.current_image is None:
+            return
+        path = filedialog.asksaveasfilename(
+            filetypes=Bitmap.FILE_TYPES,
+            defaultextension=Bitmap.FILE_TYPES,
+            initialfile=f"{self.current_image.name}.bmp",
+        )
+        if path is not None:
+            with open(path, mode="wb") as f:
+                f.write(
+                    Bitmap.get_bmp_data(
+                        self.current_image.width, self.current_image.get_color_bytes()
+                    )
+                )
 
 
 if __name__ == "__main__":
