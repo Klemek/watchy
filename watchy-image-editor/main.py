@@ -58,13 +58,12 @@ class Bitmap:
         elif len(data) > size:
             data = data[:size]
         line_padding = (width * 3) % 4
-        if line_padding == 0:
-            return data
         output_data = bytes()
         for y in range(height):
-            start = y * 3 * width
-            output_data += data[start : start + width]
-            output_data += bytes([0]) * line_padding
+            start = (height - y - 1) * 3 * width
+            output_data += data[start : start + width * 3]
+            if line_padding > 0:
+                output_data += bytes([0]) * (4 - line_padding)
         return output_data
 
 
@@ -116,6 +115,10 @@ class Image:
                 else:
                     output += bytes([255, 255, 255])
         return output
+
+    def export_bmp(self, path: str) -> None:
+        with open(path, mode="wb") as f:
+            f.write(Bitmap.get_bmp_data(self.width, self.get_color_bytes()))
 
 
 class File:
@@ -334,14 +337,7 @@ class App(ttk.Frame):
                 height=(image.height * DRAW_SCALE),
                 background="white",
             )
-            self.canvas.create_rectangle(
-                0,
-                0,
-                (image.width * DRAW_SCALE),
-                (image.height * DRAW_SCALE),
-                fill="white",
-                outline="",
-            )
+            self.canvas.delete("all")
             for x in range(image.width):
                 for y in range(image.height):
                     if image.get_pixel(x, y):
@@ -431,13 +427,7 @@ class App(ttk.Frame):
             initialfile=f"{self.current_image.name}.bmp",
         )
         if path is not None:
-            with open(path, mode="wb") as f:
-                f.write(
-                    Bitmap.get_bmp_data(
-                        self.current_image.width, self.current_image.get_color_bytes()
-                    )
-                )
-
+            self.current_image.export_bmp(path)
 
 if __name__ == "__main__":
     app = App(Tk())
