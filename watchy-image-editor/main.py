@@ -88,25 +88,44 @@ class Bitmap:
     def read_bmp(cls, path: str) -> Tuple[int, int, int, bytes]:
         with open(path, mode="rb") as f:
             bmp_data = f.read()
-            width, height, color_depth, data_start, data_size = cls.read_header(
-                bmp_data
-            )
-            # TODO read data
+        width, height, color_depth, data_start, data_size = cls.__read_header(bmp_data)
+        content_data = bmp_data[data_start:]
+        if data_size > 0:
+            content_data = content_data[:data_size]
+        output_data = cls.__read_formated_data(width, height, color_depth, content_data)
+        return width, height, color_depth, output_data
 
     @classmethod
-    def read_header(cls, bmp_data: bytes) -> Tuple[int, int, int, int, int]:
+    def __read_header(cls, bmp_data: bytes) -> Tuple[int, int, int, int, int]:
         if bmp_data[0:2].decode() != "BM":
             raise BitmapError("Not a Bitmap Image")
         if int.from_bytes(bmp_data[30:34], byteorder="little") != 0:
-            raise BitmapError("Cannot read Bitmap: compression")
+            raise BitmapError("Cannot read Bitmap: need no compression")
         if int.from_bytes(bmp_data[26:28], byteorder="little") != 1:
-            raise BitmapError("Cannot read Bitmap: color panes")
+            raise BitmapError("Cannot read Bitmap: need 1 color panes")
         width = int.from_bytes(bmp_data[18:22], byteorder="little")
-        height = int.from_bytes(bmp_data[22:28], byteorder="little")
+        height = int.from_bytes(bmp_data[22:26], byteorder="little")
         color_depth = int.from_bytes(bmp_data[28:30], byteorder="little") // 8
+        if color_depth < 1:
+            raise BitmapError("Cannot read Bitmap: bits per pixels is < 8")
         data_start = int.from_bytes(bmp_data[10:14], byteorder="little")
         data_size = int.from_bytes(bmp_data[34:38], byteorder="little")
         return width, height, color_depth, data_start, data_size
+
+    @classmethod
+    def __read_formated_data(
+        cls, width: int, height: int, color_depth: int, bmp_data: bytes
+    ) -> bytes:
+        line_padding = (width * color_depth) % 4
+        if line_padding > 0:
+            real_width = width * color_depth + (4 - line_padding)
+        else:
+            real_width = width * color_depth
+        output_data = bytes()
+        for y in range(height):
+            start = (height - y - 1) * real_width
+            output_data += bmp_data[start : start + width * color_depth]
+        return output_data
 
 
 class Image:
@@ -129,25 +148,23 @@ class Image:
                 width -= 1
             self.width = width
             self.height = pixels // width
-        print(f"image '{self.name}': {self.width}x{self.height}")
 
     def add_data(self, raw_data: List[str]) -> None:
         for v in raw_data:
             self.data += [int(v, 16)]
 
-    def get_position(self, x: int, y: int) -> int:
+    def __get_position(self, x: int, y: int) -> int:
         real_width = (len(self.data) * 8) // self.height
         return y * real_width + x
 
     def get_pixel(self, x: int, y: int) -> bool:
-        position = self.get_position(x, y)
+        position = self.__get_position(x, y)
         chunk_id = position // 8
         return self.data[chunk_id] & (1 << (7 - position % 8)) > 0
 
     def set_pixel(self, x: int, y: int, v: bool) -> None:
-        position = self.get_position(x, y)
+        position = self.__get_position(x, y)
         chunk_id = position // 8
-        byte = pow(2, 7 - position % 8)
         if v != self.get_pixel(x, y):
             if v:
                 self.data[chunk_id] |= 1 << (7 - position % 8)
@@ -155,7 +172,7 @@ class Image:
                 self.data[chunk_id] &= ~(1 << (7 - position % 8))
             self.modified = True
 
-    def get_color_bytes(self) -> bytes:
+    def __get_color_bytes(self) -> bytes:
         output = bytes()
         for y in range(self.height):
             for x in range(self.width):
@@ -166,11 +183,33 @@ class Image:
         return output
 
     def export_bmp(self, path: str) -> None:
-        Bitmap.write_bmp(path, self.width, 3, self.get_color_bytes())
+        Bitmap.write_bmp(path, self.width, 3, self.__get_color_bytes())
+
+    def __set_color_bytes(self, color_depth: int, data: bytes) -> None:
+        for y in range(self.height):
+            for x in range(self.width):
+                position = (y * self.width + x) * color_depth
+                colors = data[position : position + color_depth]
+                mean_color = sum(c for c in colors) / color_depth
+                if mean_color < 128:
+                    self.set_pixel(x, y, True)
 
     def import_bmp(self, path: str) -> None:
-        self.width, self.height, color_depth, data = Bitmap.read_bmp(path)
-        # TODO
+        self.width, self.height, color_depth, bmp_data = Bitmap.read_bmp(path)
+        self.data = [0] * ((self.width * self.height) // 8)
+        self.__set_color_bytes(color_depth, bmp_data)
+
+    def export_cpp(self) -> str:
+        # 16 per line
+        output = [
+            f"// '{self.name}', {self.width}x{self.height}px",
+            f"const unsigned char {self.name} [] PROGMEM = {{",
+        ]
+        while len(self.data) > 16:
+            output += ["\t" + ", ".join(f"0x{v:02x}" for v in self.data[0:16]) + ","]
+            self.data = self.data[16:]
+        output += ["\t" + ", ".join(f"0x{v:02x}" for v in self.data), "};", ""]
+        return "\n".join(output)
 
 
 class File:
@@ -225,6 +264,11 @@ class File:
                     current_image = Image(groups[0], int(groups[1]), int(groups[2]))
 
         return images
+
+    def export(self, path: str) -> None:
+        with open(path, mode="w") as f:
+            for image in self.images:
+                f.write(image.export_cpp())
 
 
 class App(ttk.Frame):
@@ -390,7 +434,6 @@ class App(ttk.Frame):
 
     def update_canvas(self) -> None:
         image = self.current_image
-        scale = 3
         if image is None:
             self.canvas.configure(
                 width=0,
@@ -475,7 +518,7 @@ class App(ttk.Frame):
     def save_file(self, path: Optional[str] = None) -> None:
         if path == "":
             path = filedialog.asksaveasfilename()
-        # TODO
+        self.current_file.export(path)
         self.open_file(path)
 
     def open_file(self, path: Optional[str]) -> None:
@@ -501,7 +544,16 @@ class App(ttk.Frame):
         pass  # TODO
 
     def import_bmp(self) -> None:
-        pass  # TODO
+        if self.current_image is None:
+            return
+        path = filedialog.askopenfilename(
+            filetypes=Bitmap.FILE_TYPES,
+            defaultextension=Bitmap.FILE_TYPES,
+        )
+        if path is not None:
+            # TODO error handling
+            self.current_image.import_bmp(path)
+            self.update()
 
     def export_bmp(self) -> None:
         if self.current_image is None:
@@ -515,8 +567,12 @@ class App(ttk.Frame):
             self.current_image.export_bmp(path)
 
 
-if __name__ == "__main__":
-    app = App(Tk())
-    app.pack(fill="both", expand=True)
+# if __name__ == "__main__":
+#     app = App(Tk())
+#     app.pack(fill="both", expand=True)
 
-    app.mainloop()
+#     app.mainloop()
+
+f = File("tetris.h")
+f.images[-1].import_bmp("tetrisbg2.bmp")
+f.export("tetris2.h")
