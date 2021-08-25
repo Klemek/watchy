@@ -5,6 +5,9 @@ from typing import List, Optional, Tuple
 import re
 
 
+DRAW_SCALE = 3
+
+
 class Image:
     def __init__(self, comment_name: str, width: int, height: int) -> None:
         self.comment_name = comment_name
@@ -15,10 +18,21 @@ class Image:
 
     def add_data(self, raw_data: List[str]) -> None:
         for v in raw_data:
-            self.data += list(map(lambda v: int(v), f"{int(v, 16):08b}"))
+            self.data += [int(v, 16)]
 
     def get_pixel(self, x: int, y: int) -> bool:
-        return self.data[y * self.width + x] == 1  # TODO better
+        position = y * self.width + x
+        chunk_id = position // 8
+        return self.data[chunk_id] & (1 << (7 - position % 8)) > 0
+
+    def set_pixel(self, x: int, y: int, v: bool) -> None:
+        position = y * self.width + x
+        chunk_id = position // 8
+        byte = pow(2, 7 - position % 8)
+        if v:
+            self.data[chunk_id] |= 1 << (7 - position % 8)
+        else:
+            self.data[chunk_id] &= ~(1 << (7 - position % 8))
 
 
 class File:
@@ -179,8 +193,12 @@ class App(ttk.Frame):
         view = ttk.Frame(self, height=650, width=650)
         view.grid(column=1, row=0, sticky=(N, S, E, W))
 
-        canvas = Canvas(view, width=20, height=20, background="white")
+        canvas = Canvas(view, width=0, height=0, background="white")
         canvas.place(in_=view, anchor="c", relx=0.5, rely=0.5)
+        canvas.bind("<Button-1>", self.click_canvas_b1)
+        canvas.bind("<B1-Motion>", self.click_canvas_b1)
+        canvas.bind("<Button-3>", self.click_canvas_b3)
+        canvas.bind("<B3-Motion>", self.click_canvas_b3)
 
         return canvas
 
@@ -208,17 +226,23 @@ class App(ttk.Frame):
     def update_canvas(self) -> None:
         image = self.current_image
         scale = 3
-        if image is not None:
+        if image is None:
             self.canvas.configure(
-                width=(image.width * scale),
-                height=(image.height * scale),
+                width=0,
+                height=0,
+                background="white",
+            )
+        else:
+            self.canvas.configure(
+                width=(image.width * DRAW_SCALE),
+                height=(image.height * DRAW_SCALE),
                 background="white",
             )
             self.canvas.create_rectangle(
                 0,
                 0,
-                (image.width * scale),
-                (image.height * scale),
+                (image.width * DRAW_SCALE),
+                (image.height * DRAW_SCALE),
                 fill="white",
                 outline="",
             )
@@ -226,13 +250,34 @@ class App(ttk.Frame):
                 for y in range(image.height):
                     if image.get_pixel(x, y):
                         self.canvas.create_rectangle(
-                            x * scale,
-                            y * scale,
-                            (x + 1) * scale,
-                            (y + 1) * scale,
+                            x * DRAW_SCALE,
+                            y * DRAW_SCALE,
+                            (x + 1) * DRAW_SCALE,
+                            (y + 1) * DRAW_SCALE,
                             fill="black",
                             outline="",
                         )
+
+    def click_canvas_b1(self, event):
+        self.click_canvas(True, event)
+
+    def click_canvas_b3(self, event):
+        self.click_canvas(False, event)
+
+    def click_canvas(self, value, event):
+        if self.current_image is None:
+            return
+        x = event.x // DRAW_SCALE
+        y = event.y // DRAW_SCALE
+        self.current_image.set_pixel(x, y, value)
+        self.canvas.create_rectangle(
+            x * DRAW_SCALE,
+            y * DRAW_SCALE,
+            (x + 1) * DRAW_SCALE,
+            (y + 1) * DRAW_SCALE,
+            fill=("black" if value else "white"),
+            outline="",
+        )
 
     def save_file(self, path: Optional[str] = None) -> None:
         if path == "":
