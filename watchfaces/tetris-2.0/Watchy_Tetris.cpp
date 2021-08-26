@@ -30,7 +30,7 @@ void WatchyTetris::drawWatchFace()
         sensor.resetStepCounter();
     }
     uint32_t stepCount = sensor.getCounter();
-    drawNumber(191, 41, stepCount);
+    drawNumber(191, 41, stepCount, 7);
 
     //Voltage
     float VBAT = getBatteryVoltage();
@@ -39,19 +39,18 @@ void WatchyTetris::drawWatchFace()
         percent = 0;
     if (percent > 100)
         percent = 100;
-    drawNumber(181, 81, percent);
+    drawNumber(181, 81, percent, 3);
 
     //Date
-    drawNumber(181, 111, currentTime.Month * 100 + currentTime.Day);
+    drawNumber(181, 111, currentTime.Month * 100 + currentTime.Day, 4);
 }
 
-void WatchyTetris::drawNumber(uint32_t x, uint32_t y, uint32_t v)
+void WatchyTetris::drawNumber(uint32_t x, uint32_t y, uint32_t value, uint32_t max_digits)
 {
-    for(int8_t i = 0; i < 8; i++){
-        display.drawBitmap(x - i * 10, y, tetris_small_nums[v % 10], 8, 8, GxEPD_BLACK);
-        v /= 10;
-        if (v == 0) {
+    for(int8_t i = 0; i <= max_digits; i++){
+        display.drawBitmap(x - i * 10, y, tetris_small_nums[value % 10], 8, 8, GxEPD_BLACK);
+        value /= 10;
+        if (value == 0)
             break;
-        }
     }
 }
