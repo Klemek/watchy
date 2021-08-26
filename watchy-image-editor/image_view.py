@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 
-from .image import Image
+from image import Image
 
 
 class ImageView(ttk.Frame):

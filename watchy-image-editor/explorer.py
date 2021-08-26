@@ -1,8 +1,8 @@
 from tkinter import ttk
 from typing import Optional
 
-from .file import File
-from .image import Image
+from file import File
+from image import Image
 
 
 class Explorer(ttk.Frame):

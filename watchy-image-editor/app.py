@@ -1,15 +1,57 @@
 import tkinter as tk
 from tkinter import ttk, filedialog
 from typing import Optional
+from enum import Enum
+import os.path
 
-from .explorer import Explorer
-from .image_view import ImageView
-from .file import File
-from .image import Image
-from .bitmap import Bitmap
+from explorer import Explorer
+from image_view import ImageView
+from file import File
+from image import Image
+from bitmap import Bitmap
+
+
+class MenuEntryType(Enum):
+    DEFAULT = 0
+    NEED_FILE = 1
+    NEED_IMAGE = 2
+    SEPARATOR = 4
 
 
 class App(ttk.Frame):
+    MENU_ENTRIES = {
+        "File": [
+            ("New File", "_file_new", MenuEntryType.DEFAULT),
+            ("Open File...", "_file_open", MenuEntryType.DEFAULT),
+            ("", "", MenuEntryType.SEPARATOR),
+            ("Save File", "_file_save", MenuEntryType.NEED_FILE),
+            ("Save File As...", "_file_save_as", MenuEntryType.NEED_FILE),
+            ("Close File", "_file_close", MenuEntryType.NEED_FILE),
+            ("", "", MenuEntryType.SEPARATOR),
+            ("New image...", "_file_new_image", MenuEntryType.NEED_FILE),  # TODO _file_new_image
+            ("", "", MenuEntryType.SEPARATOR),
+            ("Quit", "_file_quit", MenuEntryType.DEFAULT),  # TODO _file_quit
+        ],
+        "Image": [
+            ("Edit Image Name...", "_image_edit_name", MenuEntryType.NEED_IMAGE),  # TODO _image_edit_name
+            ("Edit Image Size...", "_image_edit_size", MenuEntryType.NEED_IMAGE),  # TODO _image_edit_size
+            ("Move Image Up", "_image_move_up", MenuEntryType.NEED_IMAGE),  # TODO _image_move_up
+            ("Move Image Down", "_image_move_down", MenuEntryType.NEED_IMAGE),  # TODO _image_move_down
+            ("Delete Image", "_image_delete", MenuEntryType.NEED_IMAGE),  # TODO _image_delete
+        ],
+        "Bitmap": [
+            ("Bulk .bmp Import...", "_bmp_import_all", MenuEntryType.NEED_FILE),  # TODO _bmp_import_all
+            ("Export All To .bmp...", "_bmp_export_all", MenuEntryType.NEED_FILE),  # TODO _bmp_export_all
+            ("", "", MenuEntryType.SEPARATOR),
+            (
+                "Import .bmp Into Image...",
+                "_bmp_import_image",
+                MenuEntryType.NEED_IMAGE,
+            ),
+            ("Export Image To .bmp...", "_bmp_export_image", MenuEntryType.NEED_IMAGE),
+        ],
+    }
+
     def __init__(self, parent) -> None:
         super().__init__(parent)
 
@@ -63,141 +105,58 @@ class App(ttk.Frame):
         self.menubar = tk.Menu(self.parent)
         self.parent["menu"] = self.menubar
 
-        self.menu_file = tk.Menu(self.menubar)
-        self.menubar.add_cascade(menu=self.menu_file, label="File")
+        self.menus = {}
 
-        # TODO better handling of menu items
+        for menu_name in self.MENU_ENTRIES:
+            self.menus[menu_name] = tk.Menu(self.menubar)
+            self.menubar.add_cascade(menu=self.menus[menu_name], label=menu_name)
 
-        self.menu_file_need_file = []
-
-        self.menu_file.add_command(label="New File", command=lambda: self.open_file(""))
-        i = 0
-        self.menu_file.add_command(
-            label="Open File...",
-            command=lambda: self.open_file(
-                filedialog.askopenfilename(
-                    filetypes=File.FILE_TYPES,
-                    defaultextension=File.FILE_TYPES,
-                )
-            ),
-        )
-        i += 1
-        self.menu_file.add_command(
-            label="Save File",
-            command=lambda: self.save_file(self.current_file.path),
-        )
-        i += 1
-        self.menu_file_need_file += [i]
-        self.menu_file.add_command(
-            label="Save File As...",
-            command=lambda: self.save_file(
-                filedialog.asksaveasfilename(
-                    filetypes=File.FILE_TYPES, defaultextension=File.FILE_TYPES
-                )
-            ),
-        )
-        i += 1
-        self.menu_file_need_file += [i]
-        self.menu_file.add_command(
-            label="Close File",
-            command=lambda: self.open_file(None),
-        )
-        i += 1
-        self.menu_file_need_file += [i]
-        self.menu_file.add_separator()
-        i += 1
-        self.menu_file.add_command(
-            label="New image...",
-            command=self.add_image,
-            state="disabled",
-        )
-        i += 1
-        self.menu_file_need_file += [i]
-
-        self.menu_image = tk.Menu(self.menubar)
-        self.menubar.add_cascade(menu=self.menu_image, label="Image")
-
-        self.menu_image.add_command(
-            label="Edit name...",
-            command=self.edit_image_name,
-            state="disabled",
-        )
-        self.menu_image.add_command(
-            label="Edit size...",
-            command=self.edit_image_size,
-            state="disabled",
-        )
-        self.menu_image.add_command(
-            label="Move up",
-            command=self.move_image_up,
-            state="disabled",
-        )
-        self.menu_image.add_command(
-            label="Move down",
-            command=self.move_image_down,
-            state="disabled",
-        )
-        self.menu_image.add_command(
-            label="Delete",
-            command=self.delete_image,
-            state="disabled",
-        )
-
-        self.menu_bmp = tk.Menu(self.menubar)
-        self.menubar.add_cascade(menu=self.menu_bmp, label="Bitmap")
-
-        self.menu_bmp_need_image = []
-
-        self.menu_bmp.add_command(
-            label="Bulk .bmp import...",
-            command=self.import_all_bmp,
-        )
-        i = 0
-        self.menu_bmp.add_command(
-            label="Export all to .bmp...",
-            command=self.export_all_bmp,
-        )
-        i += 1
-        self.menu_bmp.add_separator()
-        i += 1
-        self.menu_bmp.add_command(
-            label="Import .bmp into image...",
-            command=self.import_bmp,
-            state="disabled",
-        )
-        i += 1
-        self.menu_bmp_need_image += [i]
-        self.menu_bmp.add_command(
-            label="Export image to .bmp...",
-            command=self.export_bmp,
-            state="disabled",
-        )
-        i += 1
-        self.menu_bmp_need_image += [i]
+            for entry_name, entry_action_name, entry_type in self.MENU_ENTRIES[
+                menu_name
+            ]:
+                if entry_type == MenuEntryType.SEPARATOR:
+                    self.menus[menu_name].add_separator()
+                else:
+                    try:
+                        entry_action = getattr(self, entry_action_name)
+                    except AttributeError:
+                        entry_action = lambda: print("missing menu action")
+                    self.menus[menu_name].add_command(
+                        label=entry_name, command=entry_action
+                    )
 
     def update_menus(self) -> None:
-        for index in self.menu_file_need_file:
-            self.menu_file.entryconfigure(
-                index,
-                state=("normal" if self.current_file is not None else "disabled"),
-            )
-        self.menubar.entryconfigure(
-            "Image", state=("normal" if self.current_image is not None else "disabled")
-        )
-        self.menubar.entryconfigure(
-            "Bitmap", state=("normal" if self.current_file is not None else "disabled")
-        )
-        for index in self.menu_bmp_need_image:
-            self.menu_bmp.entryconfigure(
-                index,
-                state=("normal" if self.current_image is not None else "disabled"),
+        for menu_name in self.MENU_ENTRIES:
+            any_enabled = False
+            for entry_name, entry_action, entry_type in self.MENU_ENTRIES[menu_name]:
+                if entry_type == MenuEntryType.NEED_FILE:
+                    self.menus[menu_name].entryconfigure(
+                        entry_name,
+                        state=(
+                            "normal" if self.current_file is not None else "disabled"
+                        ),
+                    )
+                    any_enabled |= self.current_file is not None
+                elif entry_type == MenuEntryType.NEED_IMAGE:
+                    self.menus[menu_name].entryconfigure(
+                        entry_name,
+                        state=(
+                            "normal" if self.current_image is not None else "disabled"
+                        ),
+                    )
+                    any_enabled |= self.current_image is not None
+                elif entry_type == MenuEntryType.DEFAULT:
+                    any_enabled = True
+
+            self.menubar.entryconfigure(
+                menu_name, state=("normal" if any_enabled else "disabled")
             )
 
-    def open_file(self, path: Optional[str]) -> None:
-        if path is None:
+    def open_file(self, path: Optional[str], new: bool = False) -> None:
+        if path is None and not new:
             self.current_file = None
         else:
-            self.current_file = File(path if path != "" else None)
+            self.current_file = File(path)
         self.update(force=True)
 
     def save_file(self, path: Optional[str] = None) -> None:
@@ -206,49 +165,58 @@ class App(ttk.Frame):
         self.current_file.export(path)
         self.open_file(path)
 
-    def add_image(self) -> None:
-        pass  # TODO add image action
+    def _file_new(self) -> None:
+        self.open_file(None, True)
 
-    def edit_image_name(self) -> None:
-        pass  # TODO edit image name action
+    def _file_open(self) -> None:
+        path = filedialog.askopenfilename(
+            filetypes=File.FILE_TYPES,
+            defaultextension=File.FILE_TYPES,
+            initialfile=(
+                os.path.basename(self.current_file.path)
+                if self.current_file is not None
+                else None
+            ),
+            initialdir=(
+                os.path.dirname(self.current_file.path)
+                if self.current_file is not None
+                else None
+            ),
+        )
+        if path:
+            self.open_file(path)
 
-    def edit_image_size(self) -> None:
-        pass  # TODO edit image size action
+    def _file_save(self) -> None:
+        self.save_file()
 
-    def move_image_up(self) -> None:
-        pass  # TODO move image actions
+    def _file_save_as(self) -> None:
+        path = filedialog.asksaveasfilename(
+            filetypes=File.FILE_TYPES,
+            defaultextension=File.FILE_TYPES,
+            initialfile=os.path.basename(self.current_file.path),
+            initialdir=os.path.dirname(self.current_file.path),
+        )
+        if path:
+            self.save_file(path)
 
-    def move_image_down(self) -> None:
-        pass  # TODO move image actions
+    def _file_close(self) -> None:
+        self.open_file(None)
 
-    def delete_image(self) -> None:
-        pass  # TODO delete image action
-
-    def import_all_bmp(self) -> None:
-        pass  # TODO import all bmp action
-
-    def export_all_bmp(self) -> None:
-        pass  # TODO export all bmp action
-
-    def import_bmp(self) -> None:
-        if self.current_image is None:
-            return
+    def _bmp_import_image(self) -> None:
         path = filedialog.askopenfilename(
             filetypes=Bitmap.FILE_TYPES,
             defaultextension=Bitmap.FILE_TYPES,
         )
-        if path is not None:
+        if path:
             # TODO error handling
             self.current_image.import_bmp(path)
             self.update()
 
-    def export_bmp(self) -> None:
-        if self.current_image is None:
-            return
+    def _bmp_export_image(self) -> None:
         path = filedialog.asksaveasfilename(
             filetypes=Bitmap.FILE_TYPES,
             defaultextension=Bitmap.FILE_TYPES,
             initialfile=f"{self.current_image.name}.bmp",
         )
-        if path is not None:
+        if path:
             self.current_image.export_bmp(path)

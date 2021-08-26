@@ -2,7 +2,7 @@ from typing import List
 import re
 import os.path
 
-from .image import Image
+from image import Image
 
 
 class File:

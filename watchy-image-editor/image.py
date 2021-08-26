@@ -1,7 +1,7 @@
 from typing import List
 from math import sqrt
 
-from .bitmap import Bitmap
+from bitmap import Bitmap
 
 
 class Image:
