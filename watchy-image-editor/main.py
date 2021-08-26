@@ -162,6 +162,7 @@ class Image:
     def set_pixel(self, x: int, y: int, v: bool) -> None:
         position = self.__get_position(x, y)
         chunk_id = position // 8
+        # TODO fix, invalid chunk id when drawing
         if v != self.get_pixel(x, y):
             if v:
                 self.data[chunk_id] |= 1 << (7 - position % 8)
@@ -268,6 +269,101 @@ class File:
                 f.write(image.export_cpp())
 
 
+class ImageView(ttk.Frame):
+    INITIAL_DRAW_SCALE = 3
+
+    def __init__(self, parent) -> None:
+        super().__init__(parent, height=650, width=650)
+
+        self.draw_scale = self.INITIAL_DRAW_SCALE
+
+        self.current_image = None
+
+        self.canvas = Canvas(self, width=0, height=0, background="white")
+        self.canvas.place(in_=self, anchor="c", relx=0.5, rely=0.5)
+        self.canvas.bind("<Button-1>", self.click_canvas_b1)
+        self.canvas.bind("<B1-Motion>", self.click_canvas_b1)
+        self.canvas.bind("<ButtonRelease-1>", self.update)
+        self.canvas.bind("<Button-3>", self.click_canvas_b3)
+        self.canvas.bind("<B3-Motion>", self.click_canvas_b3)
+        self.canvas.bind("<ButtonRelease-3>", self.update)
+
+        self.canvas.bind("<MouseWheel>", self.zoom_canvas)
+        self.canvas.bind("<Button-4>", self.zoom_canvas_up)
+        self.canvas.bind("<Button-5>", self.zoom_canvas_down)
+
+        self.bind("<MouseWheel>", self.zoom_canvas)
+        self.bind("<Button-4>", self.zoom_canvas_up)
+        self.bind("<Button-5>", self.zoom_canvas_down)
+
+        self.grid(column=1, row=0, sticky=(N, S, E, W))
+    
+    def update(self, image: Image) -> None:
+        if self.current_image != image:
+            self.draw_scale = self.INITIAL_DRAW_SCALE
+        if image is None:
+            self.canvas.configure(
+                width=0,
+                height=0,
+                background="white",
+            )
+        else:
+            self.canvas.configure(
+                width=(image.width * self.draw_scale),
+                height=(image.height * self.draw_scale),
+                background="white",
+            )
+            # TODO fix / handle, "bad screen distance "??????""
+            self.canvas.delete("all")
+            for x in range(image.width):
+                for y in range(image.height):
+                    if image.get_pixel(x, y):
+                        self.canvas.create_rectangle(
+                            x * self.draw_scale + 1,
+                            y * self.draw_scale + 1,
+                            (x + 1) * self.draw_scale + 1,
+                            (y + 1) * self.draw_scale + 1,
+                            fill="black",
+                            outline="",
+                        )
+        self.current_image = image
+
+    def click_canvas_b1(self, event):
+        self.click_canvas(True, event)
+
+    def click_canvas_b3(self, event):
+        self.click_canvas(False, event)
+
+    def click_canvas(self, value, event):
+        if self.current_image is None:
+            return
+        x = int(event.x / self.draw_scale)
+        y = int(event.y / self.draw_scale)
+        self.current_image.set_pixel(x, y, value)
+        self.canvas.create_rectangle(
+            x * self.draw_scale + 1,
+            y * self.draw_scale + 1,
+            (x + 1) * self.draw_scale + 1,
+            (y + 1) * self.draw_scale + 1,
+            fill=("black" if value else "white"),
+            outline="",
+        )
+
+    def zoom_canvas(self, event):
+        if event.delta > 0:
+            self.zoom_canvas_up()
+        else:
+            self.zoom_canvas_down()
+
+    def zoom_canvas_up(self, event=None):
+        self.draw_scale *= 2
+        self.update(self.current_image)
+
+    def zoom_canvas_down(self, event=None):
+        self.draw_scale /= 2
+        self.update(self.current_image)
+
+
 class App(ttk.Frame):
     INITIAL_DRAW_SCALE = 3
 
@@ -283,7 +379,7 @@ class App(ttk.Frame):
         self.draw_scale = self.INITIAL_DRAW_SCALE
 
         self.init_explorer()
-        self.init_canvas()
+        self.image_view = ImageView(self)
         self.init_menus()
 
         self.grid_rowconfigure(0, weight=1)
@@ -302,9 +398,21 @@ class App(ttk.Frame):
 
     def update(self, force: bool = False) -> None:
         self.update_menus()
-        self.update_canvas()
+        self.image_view.update(self.current_image)
         self.update_explorer(force)
         self.update_title()
+
+    def update_title(self) -> None:
+        title = "Watchy Image Editor"
+        if self.current_file is not None:
+            title += "- "
+            if self.current_file.path is None:
+                title += "New file"
+            else:
+                title += self.current_file.filename
+            if self.current_file.modified:
+                title += "*"
+        self.parent.title(title)
 
     def init_menus(self) -> None:
         self.menubar = Menu(self.parent)
@@ -543,101 +651,6 @@ class App(ttk.Frame):
     def explorer_item_click(self, event) -> None:
         self.draw_scale = self.INITIAL_DRAW_SCALE
         self.update()
-
-    def init_canvas(self) -> None:
-        view = ttk.Frame(self, height=650, width=650)
-        view.grid(column=1, row=0, sticky=(N, S, E, W))
-
-        view.bind("<MouseWheel>", self.zoom_canvas)
-        view.bind("<Button-4>", self.zoom_canvas_up)
-        view.bind("<Button-5>", self.zoom_canvas_down)
-
-        self.canvas = Canvas(view, width=0, height=0, background="white")
-        self.canvas.place(in_=view, anchor="c", relx=0.5, rely=0.5)
-        self.canvas.bind("<Button-1>", self.click_canvas_b1)
-        self.canvas.bind("<B1-Motion>", self.click_canvas_b1)
-        self.canvas.bind("<ButtonRelease-1>", self.update)
-        self.canvas.bind("<Button-3>", self.click_canvas_b3)
-        self.canvas.bind("<B3-Motion>", self.click_canvas_b3)
-        self.canvas.bind("<ButtonRelease-3>", self.update)
-
-        self.canvas.bind("<MouseWheel>", self.zoom_canvas)
-        self.canvas.bind("<Button-4>", self.zoom_canvas_up)
-        self.canvas.bind("<Button-5>", self.zoom_canvas_down)
-
-    def update_canvas(self) -> None:
-        image = self.current_image
-        if image is None:
-            self.canvas.configure(
-                width=0,
-                height=0,
-                background="white",
-            )
-        else:
-            self.canvas.configure(
-                width=(image.width * self.draw_scale),
-                height=(image.height * self.draw_scale),
-                background="white",
-            )
-            self.canvas.delete("all")
-            for x in range(image.width):
-                for y in range(image.height):
-                    if image.get_pixel(x, y):
-                        self.canvas.create_rectangle(
-                            x * self.draw_scale + 1,
-                            y * self.draw_scale + 1,
-                            (x + 1) * self.draw_scale + 1,
-                            (y + 1) * self.draw_scale + 1,
-                            fill="black",
-                            outline="",
-                        )
-
-    def update_title(self) -> None:
-        title = "Watchy Image Editor"
-        if self.current_file is not None:
-            title += "- "
-            if self.current_file.path is None:
-                title += "New file"
-            else:
-                title += self.current_file.filename
-            if self.current_file.modified:
-                title += "*"
-        self.parent.title(title)
-
-    def click_canvas_b1(self, event):
-        self.click_canvas(True, event)
-
-    def click_canvas_b3(self, event):
-        self.click_canvas(False, event)
-
-    def click_canvas(self, value, event):
-        if self.current_image is None:
-            return
-        x = int(event.x / self.draw_scale)
-        y = int(event.y / self.draw_scale)
-        self.current_image.set_pixel(x, y, value)
-        self.canvas.create_rectangle(
-            x * self.draw_scale + 1,
-            y * self.draw_scale + 1,
-            (x + 1) * self.draw_scale + 1,
-            (y + 1) * self.draw_scale + 1,
-            fill=("black" if value else "white"),
-            outline="",
-        )
-
-    def zoom_canvas(self, event):
-        if event.delta > 0:
-            self.zoom_canvas_up()
-        else:
-            self.zoom_canvas_down()
-
-    def zoom_canvas_up(self, event=None):
-        self.draw_scale *= 2
-        self.update_canvas()
-
-    def zoom_canvas_down(self, event=None):
-        self.draw_scale /= 2
-        self.update_canvas()
 
 
 if __name__ == "__main__":
