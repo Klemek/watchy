@@ -295,7 +295,7 @@ class ImageView(ttk.Frame):
         self.bind("<MouseWheel>", self.zoom_canvas)
         self.bind("<Button-4>", self.zoom_canvas_up)
         self.bind("<Button-5>", self.zoom_canvas_down)
-    
+
     def update(self, image: Image) -> None:
         if self.current_image != image:
             self.draw_scale = self.INITIAL_DRAW_SCALE
@@ -368,7 +368,7 @@ class Explorer(ttk.Frame):
 
         self.current_file = None
         self.update_callback = update_callback
-        
+
         self.explorer = ttk.Treeview(self, columns=("size"))
         self.explorer.heading("#0", text="name")
         self.explorer.heading("size", text="size")
@@ -377,15 +377,13 @@ class Explorer(ttk.Frame):
         self.explorer.grid(row=0, column=0, sticky=(N, S, W))
         self.explorer.bind("<<TreeviewSelect>>", self.explorer_item_click)
 
-        yscrollbar = ttk.Scrollbar(
-            self, orient="vertical", command=self.explorer.yview
-        )
+        yscrollbar = ttk.Scrollbar(self, orient="vertical", command=self.explorer.yview)
         yscrollbar.grid(row=0, column=1, sticky=(N, S, W))
         self.explorer.configure(yscrollcommand=yscrollbar.set)
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-    
+
     @property
     def current_image(self) -> Optional[Image]:
         if self.current_file is None or self.explorer.focus() == "":
@@ -417,7 +415,7 @@ class Explorer(ttk.Frame):
                         text=f"{image.name}{'*' if image.modified else ''}",
                         values=[f"{image.width}x{image.height}"],
                     )
-    
+
     def explorer_item_click(self, event) -> None:
         self.update_callback()
 
@@ -437,7 +435,7 @@ class App(ttk.Frame):
 
         self.image_view = ImageView(self)
         self.image_view.grid(column=1, row=0, sticky=(N, S, E, W))
-        
+
         self.init_menus()
 
         self.grid_rowconfigure(0, weight=1)
@@ -587,28 +585,32 @@ class App(ttk.Frame):
         )
         i += 1
         self.menu_bmp_need_image += [i]
-    
+
     def update_menus(self) -> None:
         for index in self.menu_file_need_file:
             self.menu_file.entryconfigure(
                 index,
                 state=("normal" if self.current_file is not None else "disabled"),
             )
-        self.menubar.entryconfigure("Image", state=("normal" if self.current_image is not None else "disabled"))
-        self.menubar.entryconfigure("Bitmap", state=("normal" if self.current_file is not None else "disabled"))
+        self.menubar.entryconfigure(
+            "Image", state=("normal" if self.current_image is not None else "disabled")
+        )
+        self.menubar.entryconfigure(
+            "Bitmap", state=("normal" if self.current_file is not None else "disabled")
+        )
         for index in self.menu_bmp_need_image:
             self.menu_bmp.entryconfigure(
                 index,
                 state=("normal" if self.current_image is not None else "disabled"),
             )
-    
+
     def open_file(self, path: Optional[str]) -> None:
         if path is None:
             self.current_file = None
         else:
             self.current_file = File(path if path != "" else None)
-        self.update(force=True) 
-    
+        self.update(force=True)
+
     def save_file(self, path: Optional[str] = None) -> None:
         if path == "":
             path = filedialog.asksaveasfilename()
@@ -620,7 +622,7 @@ class App(ttk.Frame):
 
     def edit_image_name(self) -> None:
         pass  # TODO edit image name action
-    
+
     def edit_image_size(self) -> None:
         pass  # TODO edit image size action
 
@@ -629,7 +631,7 @@ class App(ttk.Frame):
 
     def move_image_down(self) -> None:
         pass  # TODO move image actions
-    
+
     def delete_image(self) -> None:
         pass  # TODO delete image action
 
