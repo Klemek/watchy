@@ -4,10 +4,12 @@ const unsigned char *tetris_nums[10] = {tetris0, tetris1, tetris2, tetris3, tetr
 
 const unsigned char *tetris_small_nums[10] = {tetrissmall0, tetrissmall1, tetrissmall2, tetrissmall3, tetrissmall4, tetrissmall5, tetrissmall6, tetrissmall7, tetrissmall8, tetrissmall9};
 
-const float MAX_VBAT = 4.35;
+const float MAX_VBAT = 4.30;
 const float MIN_VBAT = 3.80;
 
-WatchyTetris::WatchyTetris() {} //constructor
+WatchyTetris::WatchyTetris()
+{
+} //constructor
 
 void WatchyTetris::drawWatchFace()
 {
@@ -25,7 +27,7 @@ void WatchyTetris::drawWatchFace()
     display.drawBitmap(75, 110, tetris_nums[currentTime.Minute % 10], 40, 60, GxEPD_BLACK); //second digit
 
     //Steps
-    if (currentTime.Hour == 0 && currentTime.Minute == 0)
+    if (currentTime.Hour == 0 && currentTime.Minute == 1)
     {
         sensor.resetStepCounter();
     }
@@ -45,9 +47,10 @@ void WatchyTetris::drawWatchFace()
     drawNumber(181, 111, currentTime.Month * 100 + currentTime.Day, 4);
 }
 
-void WatchyTetris::drawNumber(uint32_t x, uint32_t y, uint32_t value, uint32_t max_digits)
+void WatchyTetris::drawNumber(int x, int y, int value, int max_digits)
 {
-    for(int8_t i = 0; i <= max_digits; i++){
+    for (int8_t i = 0; i <= max_digits; i++)
+    {
         display.drawBitmap(x - i * 10, y, tetris_small_nums[value % 10], 8, 8, GxEPD_BLACK);
         value /= 10;
         if (value == 0)
