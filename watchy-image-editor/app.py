@@ -28,20 +28,52 @@ class App(ttk.Frame):
             ("Save File As...", "_file_save_as", MenuEntryType.NEED_FILE),
             ("Close File", "_file_close", MenuEntryType.NEED_FILE),
             ("", "", MenuEntryType.SEPARATOR),
-            ("New image...", "_file_new_image", MenuEntryType.NEED_FILE),  # TODO _file_new_image
+            (
+                "New image...",
+                "_file_new_image",
+                MenuEntryType.NEED_FILE,
+            ),  # TODO _file_new_image
             ("", "", MenuEntryType.SEPARATOR),
             ("Quit", "_file_quit", MenuEntryType.DEFAULT),  # TODO _file_quit
         ],
         "Image": [
-            ("Edit Image Name...", "_image_edit_name", MenuEntryType.NEED_IMAGE),  # TODO _image_edit_name
-            ("Edit Image Size...", "_image_edit_size", MenuEntryType.NEED_IMAGE),  # TODO _image_edit_size
-            ("Move Image Up", "_image_move_up", MenuEntryType.NEED_IMAGE),  # TODO _image_move_up
-            ("Move Image Down", "_image_move_down", MenuEntryType.NEED_IMAGE),  # TODO _image_move_down
-            ("Delete Image", "_image_delete", MenuEntryType.NEED_IMAGE),  # TODO _image_delete
+            (
+                "Edit Image Name...",
+                "_image_edit_name",
+                MenuEntryType.NEED_IMAGE,
+            ),  # TODO _image_edit_name
+            (
+                "Edit Image Size...",
+                "_image_edit_size",
+                MenuEntryType.NEED_IMAGE,
+            ),  # TODO _image_edit_size
+            (
+                "Move Image Up",
+                "_image_move_up",
+                MenuEntryType.NEED_IMAGE,
+            ),  # TODO _image_move_up
+            (
+                "Move Image Down",
+                "_image_move_down",
+                MenuEntryType.NEED_IMAGE,
+            ),  # TODO _image_move_down
+            (
+                "Delete Image",
+                "_image_delete",
+                MenuEntryType.NEED_IMAGE,
+            ),  # TODO _image_delete
         ],
         "Bitmap": [
-            ("Bulk .bmp Import...", "_bmp_import_all", MenuEntryType.NEED_FILE),  # TODO _bmp_import_all
-            ("Export All To .bmp...", "_bmp_export_all", MenuEntryType.NEED_FILE),  # TODO _bmp_export_all
+            (
+                "Bulk .bmp Import...",
+                "_bmp_import_all",
+                MenuEntryType.NEED_FILE,
+            ),  # TODO _bmp_import_all
+            (
+                "Export All To .bmp...",
+                "_bmp_export_all",
+                MenuEntryType.NEED_FILE,
+            ),  # TODO _bmp_export_all
             ("", "", MenuEntryType.SEPARATOR),
             (
                 "Import .bmp Into Image...",
