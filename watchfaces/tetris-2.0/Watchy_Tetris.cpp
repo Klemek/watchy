@@ -4,7 +4,7 @@ const unsigned char *tetris_nums[10] = {tetris0, tetris1, tetris2, tetris3, tetr
 
 const unsigned char *tetris_small_nums[10] = {tetrissmall0, tetrissmall1, tetrissmall2, tetrissmall3, tetrissmall4, tetrissmall5, tetrissmall6, tetrissmall7, tetrissmall8, tetrissmall9};
 
-const float MAX_VBAT = 4.33;
+const float MAX_VBAT = 4.35;
 const float MIN_VBAT = 3.80;
 
 WatchyTetris::WatchyTetris() {} //constructor
@@ -34,7 +34,7 @@ void WatchyTetris::drawWatchFace()
 
     //Voltage
     float VBAT = getBatteryVoltage();
-    uint32_t percent = (int)(100.0 * (VBAT - MIN_VBAT) / MAX_VBAT);
+    uint32_t percent = (int)(100.0 * (VBAT - MIN_VBAT) / (MAX_VBAT - MIN_VBAT));
     if (percent < 0)
         percent = 0;
     if (percent > 100)
