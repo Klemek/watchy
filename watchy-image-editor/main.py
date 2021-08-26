@@ -295,8 +295,6 @@ class ImageView(ttk.Frame):
         self.bind("<MouseWheel>", self.zoom_canvas)
         self.bind("<Button-4>", self.zoom_canvas_up)
         self.bind("<Button-5>", self.zoom_canvas_down)
-
-        self.grid(column=1, row=0, sticky=(N, S, E, W))
     
     def update(self, image: Image) -> None:
         if self.current_image != image:
@@ -364,9 +362,67 @@ class ImageView(ttk.Frame):
         self.update(self.current_image)
 
 
-class App(ttk.Frame):
-    INITIAL_DRAW_SCALE = 3
+class Explorer(ttk.Frame):
+    def __init__(self, parent, update_callback) -> None:
+        super().__init__(parent)
 
+        self.current_file = None
+        self.update_callback = update_callback
+        
+        self.explorer = ttk.Treeview(self, columns=("size"))
+        self.explorer.heading("#0", text="name")
+        self.explorer.heading("size", text="size")
+        self.explorer.column("#0", width=100, anchor="w")
+        self.explorer.column("size", width=100, anchor="w")
+        self.explorer.grid(row=0, column=0, sticky=(N, S, W))
+        self.explorer.bind("<<TreeviewSelect>>", self.explorer_item_click)
+
+        yscrollbar = ttk.Scrollbar(
+            self, orient="vertical", command=self.explorer.yview
+        )
+        yscrollbar.grid(row=0, column=1, sticky=(N, S, W))
+        self.explorer.configure(yscrollcommand=yscrollbar.set)
+
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+    
+    @property
+    def current_image(self) -> Optional[Image]:
+        if self.current_file is None or self.explorer.focus() == "":
+            return None
+        else:
+            return self.current_file.images[int(self.explorer.focus())]
+
+    def update(self, file: File, force: bool):
+        if force or file != self.current_file:
+            ids = self.explorer.get_children()
+            if len(ids) > 0:
+                self.explorer.delete(*ids)
+
+        self.current_file = file
+
+        if self.current_file is not None:
+            for i, image in enumerate(self.current_file.images):
+                if self.explorer.exists(str(i)):
+                    self.explorer.item(
+                        str(i),
+                        text=f"{image.name}{'*' if image.modified else ''}",
+                        values=[f"{image.width}x{image.height}"],
+                    )
+                else:
+                    self.explorer.insert(
+                        "",
+                        "end",
+                        iid=str(i),
+                        text=f"{image.name}{'*' if image.modified else ''}",
+                        values=[f"{image.width}x{image.height}"],
+                    )
+    
+    def explorer_item_click(self, event) -> None:
+        self.update_callback()
+
+
+class App(ttk.Frame):
     def __init__(self, parent) -> None:
         super().__init__(parent)
 
@@ -376,10 +432,12 @@ class App(ttk.Frame):
         self.parent = parent
         self.current_file = None
 
-        self.draw_scale = self.INITIAL_DRAW_SCALE
+        self.explorer = Explorer(self, self.update)
+        self.explorer.grid(column=0, row=0, sticky=(N, S, W))
 
-        self.init_explorer()
         self.image_view = ImageView(self)
+        self.image_view.grid(column=1, row=0, sticky=(N, S, E, W))
+        
         self.init_menus()
 
         self.grid_rowconfigure(0, weight=1)
@@ -391,16 +449,16 @@ class App(ttk.Frame):
 
     @property
     def current_image(self) -> Optional[Image]:
-        if self.current_file is None or self.explorer.focus() == "":
+        if self.current_file is None:
             return None
         else:
-            return self.current_file.images[int(self.explorer.focus())]
+            return self.explorer.current_image
 
     def update(self, force: bool = False) -> None:
+        self.update_title()
         self.update_menus()
         self.image_view.update(self.current_image)
-        self.update_explorer(force)
-        self.update_title()
+        self.explorer.update(self.current_file, force)
 
     def update_title(self) -> None:
         title = "Watchy Image Editor"
@@ -603,54 +661,6 @@ class App(ttk.Frame):
         )
         if path is not None:
             self.current_image.export_bmp(path)
-
-    def init_explorer(self) -> None:
-        explorer_container = ttk.Frame(self)
-        explorer_container.grid(column=0, row=0, sticky=(N, S, W))
-
-        self.explorer = ttk.Treeview(explorer_container, columns=("size"))
-        self.explorer.heading("#0", text="name")
-        self.explorer.heading("size", text="size")
-        self.explorer.column("#0", width=100, anchor="w")
-        self.explorer.column("size", width=100, anchor="w")
-        self.explorer.grid(row=0, column=0, sticky=(N, S, W))
-        self.explorer.bind("<<TreeviewSelect>>", self.explorer_item_click)
-
-        yscrollbar = ttk.Scrollbar(
-            explorer_container, orient="vertical", command=self.explorer.yview
-        )
-        yscrollbar.grid(row=0, column=1, sticky=(N, S, W))
-        self.explorer.configure(yscrollcommand=yscrollbar.set)
-
-        explorer_container.grid_rowconfigure(0, weight=1)
-        explorer_container.grid_columnconfigure(0, weight=1)
-
-    def update_explorer(self, force: bool = False) -> None:
-        if force:
-            ids = self.explorer.get_children()
-            if len(ids) > 0:
-                self.explorer.delete(*ids)
-
-        if self.current_file is not None:
-            for i, image in enumerate(self.current_file.images):
-                if self.explorer.exists(str(i)):
-                    self.explorer.item(
-                        str(i),
-                        text=f"{image.name}{'*' if image.modified else ''}",
-                        values=[f"{image.width}x{image.height}"],
-                    )
-                else:
-                    self.explorer.insert(
-                        "",
-                        "end",
-                        iid=str(i),
-                        text=f"{image.name}{'*' if image.modified else ''}",
-                        values=[f"{image.width}x{image.height}"],
-                    )
-    
-    def explorer_item_click(self, event) -> None:
-        self.draw_scale = self.INITIAL_DRAW_SCALE
-        self.update()
 
 
 if __name__ == "__main__":
