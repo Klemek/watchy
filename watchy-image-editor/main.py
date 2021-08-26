@@ -7,7 +7,7 @@ import os.path
 from math import sqrt
 
 
-DRAW_SCALE = 3
+INITIAL_DRAW_SCALE = 3
 
 
 class BitmapError(Exception):
@@ -281,6 +281,8 @@ class App(ttk.Frame):
         self.parent = parent
         self.current_file = None
 
+        self.draw_scale = INITIAL_DRAW_SCALE
+
         self.explorer = self.make_explorer()
         self.canvas = self.make_canvas()
         self.menu_file, self.menu_edit = self.make_menus()
@@ -289,6 +291,8 @@ class App(ttk.Frame):
         self.grid_columnconfigure(0, weight=1)
 
         self.open_file(None)
+
+        self.pack(fill="both", expand=True)
 
     @property
     def current_image(self) -> Optional[Image]:
@@ -398,6 +402,10 @@ class App(ttk.Frame):
         view = ttk.Frame(self, height=650, width=650)
         view.grid(column=1, row=0, sticky=(N, S, E, W))
 
+        view.bind("<MouseWheel>", self.zoom_canvas)
+        view.bind("<Button-4>", self.zoom_canvas_up)
+        view.bind("<Button-5>", self.zoom_canvas_down)
+
         canvas = Canvas(view, width=0, height=0, background="white")
         canvas.place(in_=view, anchor="c", relx=0.5, rely=0.5)
         canvas.bind("<Button-1>", self.click_canvas_b1)
@@ -406,6 +414,10 @@ class App(ttk.Frame):
         canvas.bind("<Button-3>", self.click_canvas_b3)
         canvas.bind("<B3-Motion>", self.click_canvas_b3)
         canvas.bind("<ButtonRelease-3>", self.update)
+
+        canvas.bind("<MouseWheel>", self.zoom_canvas)
+        canvas.bind("<Button-4>", self.zoom_canvas_up)
+        canvas.bind("<Button-5>", self.zoom_canvas_down)
 
         return canvas
 
@@ -442,8 +454,8 @@ class App(ttk.Frame):
             )
         else:
             self.canvas.configure(
-                width=(image.width * DRAW_SCALE),
-                height=(image.height * DRAW_SCALE),
+                width=(image.width * self.draw_scale),
+                height=(image.height * self.draw_scale),
                 background="white",
             )
             self.canvas.delete("all")
@@ -451,10 +463,10 @@ class App(ttk.Frame):
                 for y in range(image.height):
                     if image.get_pixel(x, y):
                         self.canvas.create_rectangle(
-                            x * DRAW_SCALE,
-                            y * DRAW_SCALE,
-                            (x + 1) * DRAW_SCALE,
-                            (y + 1) * DRAW_SCALE,
+                            x * self.draw_scale + 1,
+                            y * self.draw_scale + 1,
+                            (x + 1) * self.draw_scale + 1,
+                            (y + 1) * self.draw_scale + 1,
                             fill="black",
                             outline="",
                         )
@@ -503,17 +515,31 @@ class App(ttk.Frame):
     def click_canvas(self, value, event):
         if self.current_image is None:
             return
-        x = event.x // DRAW_SCALE
-        y = event.y // DRAW_SCALE
+        x = int(event.x / self.draw_scale)
+        y = int(event.y / self.draw_scale)
         self.current_image.set_pixel(x, y, value)
         self.canvas.create_rectangle(
-            x * DRAW_SCALE,
-            y * DRAW_SCALE,
-            (x + 1) * DRAW_SCALE,
-            (y + 1) * DRAW_SCALE,
+            x * self.draw_scale + 1,
+            y * self.draw_scale + 1,
+            (x + 1) * self.draw_scale + 1,
+            (y + 1) * self.draw_scale + 1,
             fill=("black" if value else "white"),
             outline="",
         )
+
+    def zoom_canvas(self, event):
+        if event.delta > 0:
+            self.zoom_canvas_up()
+        else:
+            self.zoom_canvas_down()
+
+    def zoom_canvas_up(self, event=None):
+        self.draw_scale *= 2
+        self.update_canvas()
+
+    def zoom_canvas_down(self, event=None):
+        self.draw_scale /= 2
+        self.update_canvas()
 
     def save_file(self, path: Optional[str] = None) -> None:
         if path == "":
@@ -569,6 +595,8 @@ class App(ttk.Frame):
 
 if __name__ == "__main__":
     app = App(Tk())
-    app.pack(fill="both", expand=True)
+
+    # TODO remove
+    app.open_file("../watchfaces/tetris-2.0/tetris.h")
 
     app.mainloop()
