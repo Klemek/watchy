@@ -48,10 +48,10 @@ void WatchyTetris::drawWatchFace()
 void WatchyTetris::drawNumber(uint32_t x, uint32_t y, uint32_t v)
 {
     for(int8_t i = 0; i < 8; i++){
+        display.drawBitmap(x - i * 10, y, tetris_small_nums[v % 10], 8, 8, GxEPD_BLACK);
+        v /= 10;
         if (v == 0) {
             break;
         }
-        display.drawBitmap(x - i * 10, y, tetris_small_nums[v % 10], 8, 8, GxEPD_BLACK);
-        v /= 10;
     }
 }
