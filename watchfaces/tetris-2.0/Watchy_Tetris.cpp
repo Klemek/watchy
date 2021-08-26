@@ -4,11 +4,16 @@ const unsigned char *tetris_nums[10] = {tetris0, tetris1, tetris2, tetris3, tetr
 
 const unsigned char *tetris_small_nums[10] = {tetrissmall0, tetrissmall1, tetrissmall2, tetrissmall3, tetrissmall4, tetrissmall5, tetrissmall6, tetrissmall7, tetrissmall8, tetrissmall9};
 
+const float MAX_VBAT = 4.33;
+const float MIN_VBAT = 3.80;
+
 WatchyTetris::WatchyTetris() {} //constructor
 
 void WatchyTetris::drawWatchFace()
 {
     display.fillScreen(GxEPD_WHITE);
+
+    // Background
     display.drawBitmap(0, 0, tetrisbg, DISPLAY_WIDTH, DISPLAY_HEIGHT, GxEPD_BLACK);
 
     //Hour
@@ -25,30 +30,28 @@ void WatchyTetris::drawWatchFace()
         sensor.resetStepCounter();
     }
     uint32_t stepCount = sensor.getCounter();
-    if (stepCount > 1000000)
-        display.drawBitmap(131, 41, tetris_small_nums[(stepCount / 1000000) % 10], 8, 8, GxEPD_BLACK);
-    if (stepCount > 100000)
-        display.drawBitmap(141, 41, tetris_small_nums[(stepCount / 100000) % 10], 8, 8, GxEPD_BLACK);
-    if (stepCount > 10000)
-        display.drawBitmap(151, 41, tetris_small_nums[(stepCount / 10000) % 10], 8, 8, GxEPD_BLACK);
-    if (stepCount > 1000)
-        display.drawBitmap(161, 41, tetris_small_nums[(stepCount / 1000) % 10], 8, 8, GxEPD_BLACK);
-    if (stepCount > 100)
-        display.drawBitmap(171, 41, tetris_small_nums[(stepCount / 100) % 10], 8, 8, GxEPD_BLACK);
-    if (stepCount > 10)
-        display.drawBitmap(181, 41, tetris_small_nums[(stepCount / 10) % 10], 8, 8, GxEPD_BLACK);
-    display.drawBitmap(191, 41, tetris_small_nums[(stepCount) % 10], 8, 8, GxEPD_BLACK);
+    drawNumber(191, 41, stepCount);
 
     //Voltage
     float VBAT = getBatteryVoltage();
-    display.drawBitmap(161, 81, tetris_small_nums[(int)(VBAT * 1) % 10], 8, 8, GxEPD_BLACK);
-    display.drawBitmap(171, 81, tetris_small_nums[(int)(VBAT * 10) % 10], 8, 8, GxEPD_BLACK);
-    display.drawBitmap(181, 81, tetris_small_nums[(int)(VBAT * 100) % 10], 8, 8, GxEPD_BLACK);
+    uint32_t percent = (int)(100.0 * (VBAT - MIN_VBAT) / MAX_VBAT);
+    if (percent < 0)
+        percent = 0;
+    if (percent > 100)
+        percent = 100;
+    drawNumber(181, 81, percent);
 
     //Date
-    if (currentTime.Month > 10)
-        display.drawBitmap(151, 111, tetris_small_nums[currentTime.Month / 10], 8, 8, GxEPD_BLACK);
-    display.drawBitmap(161, 111, tetris_small_nums[currentTime.Month % 10], 8, 8, GxEPD_BLACK);
-    display.drawBitmap(171, 111, tetris_small_nums[currentTime.Day / 10], 8, 8, GxEPD_BLACK);
-    display.drawBitmap(181, 111, tetris_small_nums[currentTime.Day % 10], 8, 8, GxEPD_BLACK);
+    drawNumber(181, 111, currentTime.Month * 100 + currentTime.Day);
+}
+
+void WatchyTetris::drawNumber(uint32_t x, uint32_t y, uint32_t v)
+{
+    for(int8_t i = 0; i < 8; i++){
+        if (v == 0) {
+            break;
+        }
+        display.drawBitmap(x - i * 10, y, tetris_small_nums[v % 10], 8, 8, GxEPD_BLACK);
+        v /= 10;
+    }
 }

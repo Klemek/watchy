@@ -9,6 +9,7 @@ class WatchyTetris : public Watchy
 public:
     WatchyTetris();
     void drawWatchFace();
+    void drawNumber(uint32_t x, uint32_t y, uint32_t v);
 };
 
 #endif
