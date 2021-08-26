@@ -7,9 +7,6 @@ import os.path
 from math import sqrt
 
 
-INITIAL_DRAW_SCALE = 3
-
-
 class BitmapError(Exception):
     pass
 
@@ -272,6 +269,8 @@ class File:
 
 
 class App(ttk.Frame):
+    INITIAL_DRAW_SCALE = 3
+
     def __init__(self, parent) -> None:
         super().__init__(parent)
 
@@ -281,11 +280,11 @@ class App(ttk.Frame):
         self.parent = parent
         self.current_file = None
 
-        self.draw_scale = INITIAL_DRAW_SCALE
+        self.draw_scale = self.INITIAL_DRAW_SCALE
 
-        self.explorer = self.make_explorer()
-        self.canvas = self.make_canvas()
-        self.menu_file, self.menu_edit = self.make_menus()
+        self.init_explorer()
+        self.init_canvas()
+        self.init_menus()
 
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
@@ -296,21 +295,32 @@ class App(ttk.Frame):
 
     @property
     def current_image(self) -> Optional[Image]:
-        if self.explorer.focus() == "":
+        if self.current_file is None or self.explorer.focus() == "":
             return None
         else:
             return self.current_file.images[int(self.explorer.focus())]
 
-    def make_menus(self) -> Tuple[Menu, Menu]:
-        menubar = Menu(self.parent)
-        self.parent["menu"] = menubar
+    def update(self, force: bool = False) -> None:
+        self.update_menus()
+        self.update_canvas()
+        self.update_explorer(force)
+        self.update_title()
 
-        menu_file = Menu(menubar)
-        menubar.add_cascade(menu=menu_file, label="File")
+    def init_menus(self) -> None:
+        self.menubar = Menu(self.parent)
+        self.parent["menu"] = self.menubar
 
-        menu_file.add_command(label="New", command=lambda: self.open_file(""))
-        menu_file.add_command(
-            label="Open...",
+        self.menu_file = Menu(self.menubar)
+        self.menubar.add_cascade(menu=self.menu_file, label="File")
+
+        # TODO better handling of menu items
+
+        self.menu_file_need_file = []
+
+        self.menu_file.add_command(label="New File", command=lambda: self.open_file(""))
+        i = 0
+        self.menu_file.add_command(
+            label="Open File...",
             command=lambda: self.open_file(
                 filedialog.askopenfilename(
                     filetypes=File.FILE_TYPES,
@@ -318,87 +328,223 @@ class App(ttk.Frame):
                 )
             ),
         )
-        menu_file.add_command(
-            label="Save",
+        i += 1
+        self.menu_file.add_command(
+            label="Save File",
             command=lambda: self.save_file(self.current_file.path),
         )
-        menu_file.add_command(
-            label="Save As...",
+        i += 1
+        self.menu_file_need_file += [i]
+        self.menu_file.add_command(
+            label="Save File As...",
             command=lambda: self.save_file(
                 filedialog.asksaveasfilename(
                     filetypes=File.FILE_TYPES, defaultextension=File.FILE_TYPES
                 )
             ),
         )
-        menu_file.add_command(
-            label="Close",
+        i += 1
+        self.menu_file_need_file += [i]
+        self.menu_file.add_command(
+            label="Close File",
             command=lambda: self.open_file(None),
         )
-
-        menu_edit = Menu(menubar)
-        menubar.add_cascade(menu=menu_edit, label="Image")
-        menu_edit.add_command(
+        i += 1
+        self.menu_file_need_file += [i]
+        self.menu_file.add_separator()
+        i += 1
+        self.menu_file.add_command(
             label="New image...",
             command=self.add_image,
             state="disabled",
         )
-        menu_edit.add_command(
-            label="Delete",
-            command=self.delete_image,
-            state="disabled",
-        )
-        menu_edit.add_command(
-            label="Edit name",
+        i += 1
+        self.menu_file_need_file += [i]
+
+        self.menu_image = Menu(self.menubar)
+        self.menubar.add_cascade(menu=self.menu_image, label="Image")
+
+        self.menu_image.add_command(
+            label="Edit name...",
             command=self.edit_image_name,
             state="disabled",
         )
-        menu_edit.add_command(
+        self.menu_image.add_command(
+            label="Edit size...",
+            command=self.edit_image_size,
+            state="disabled",
+        )
+        self.menu_image.add_command(
             label="Move up",
             command=self.move_image_up,
             state="disabled",
         )
-        menu_edit.add_command(
+        self.menu_image.add_command(
             label="Move down",
             command=self.move_image_down,
             state="disabled",
         )
-        menu_edit.add_command(
-            label="Import bmp...",
+        self.menu_image.add_command(
+            label="Delete",
+            command=self.delete_image,
+            state="disabled",
+        )
+
+        self.menu_bmp = Menu(self.menubar)
+        self.menubar.add_cascade(menu=self.menu_bmp, label="Bitmap")
+
+        self.menu_bmp_need_image = []
+
+        self.menu_bmp.add_command(
+            label="Bulk .bmp import...",
+            command=self.import_all_bmp,
+        )
+        i = 0
+        self.menu_bmp.add_command(
+            label="Export all to .bmp...",
+            command=self.export_all_bmp,
+        )
+        i += 1
+        self.menu_bmp.add_separator()
+        i += 1
+        self.menu_bmp.add_command(
+            label="Import .bmp into image...",
             command=self.import_bmp,
             state="disabled",
         )
-        menu_edit.add_command(
-            label="Export bmp...",
+        i += 1
+        self.menu_bmp_need_image += [i]
+        self.menu_bmp.add_command(
+            label="Export image to .bmp...",
             command=self.export_bmp,
             state="disabled",
         )
+        i += 1
+        self.menu_bmp_need_image += [i]
+    
+    def update_menus(self) -> None:
+        for index in self.menu_file_need_file:
+            self.menu_file.entryconfigure(
+                index,
+                state=("normal" if self.current_file is not None else "disabled"),
+            )
+        self.menubar.entryconfigure("Image", state=("normal" if self.current_image is not None else "disabled"))
+        self.menubar.entryconfigure("Bitmap", state=("normal" if self.current_file is not None else "disabled"))
+        for index in self.menu_bmp_need_image:
+            self.menu_bmp.entryconfigure(
+                index,
+                state=("normal" if self.current_image is not None else "disabled"),
+            )
+    
+    def open_file(self, path: Optional[str]) -> None:
+        if path is None:
+            self.current_file = None
+        else:
+            self.current_file = File(path if path != "" else None)
+        self.update(force=True) 
+    
+    def save_file(self, path: Optional[str] = None) -> None:
+        if path == "":
+            path = filedialog.asksaveasfilename()
+        self.current_file.export(path)
+        self.open_file(path)
 
-        return menu_file, menu_edit
+    def add_image(self) -> None:
+        pass  # TODO add image action
 
-    def make_explorer(self) -> ttk.Treeview:
+    def edit_image_name(self) -> None:
+        pass  # TODO edit image name action
+    
+    def edit_image_size(self) -> None:
+        pass  # TODO edit image size action
+
+    def move_image_up(self) -> None:
+        pass  # TODO move image actions
+
+    def move_image_down(self) -> None:
+        pass  # TODO move image actions
+    
+    def delete_image(self) -> None:
+        pass  # TODO delete image action
+
+    def import_all_bmp(self) -> None:
+        pass  # TODO import all bmp action
+
+    def export_all_bmp(self) -> None:
+        pass  # TODO export all bmp action
+
+    def import_bmp(self) -> None:
+        if self.current_image is None:
+            return
+        path = filedialog.askopenfilename(
+            filetypes=Bitmap.FILE_TYPES,
+            defaultextension=Bitmap.FILE_TYPES,
+        )
+        if path is not None:
+            # TODO error handling
+            self.current_image.import_bmp(path)
+            self.update()
+
+    def export_bmp(self) -> None:
+        if self.current_image is None:
+            return
+        path = filedialog.asksaveasfilename(
+            filetypes=Bitmap.FILE_TYPES,
+            defaultextension=Bitmap.FILE_TYPES,
+            initialfile=f"{self.current_image.name}.bmp",
+        )
+        if path is not None:
+            self.current_image.export_bmp(path)
+
+    def init_explorer(self) -> None:
         explorer_container = ttk.Frame(self)
         explorer_container.grid(column=0, row=0, sticky=(N, S, W))
 
-        explorer = ttk.Treeview(explorer_container, columns=("size"))
-        explorer.heading("#0", text="name")
-        explorer.heading("size", text="size")
-        explorer.column("#0", width=100, anchor="w")
-        explorer.column("size", width=100, anchor="w")
-        explorer.grid(row=0, column=0, sticky=(N, S, W))
-        explorer.bind("<<TreeviewSelect>>", self.update)
+        self.explorer = ttk.Treeview(explorer_container, columns=("size"))
+        self.explorer.heading("#0", text="name")
+        self.explorer.heading("size", text="size")
+        self.explorer.column("#0", width=100, anchor="w")
+        self.explorer.column("size", width=100, anchor="w")
+        self.explorer.grid(row=0, column=0, sticky=(N, S, W))
+        self.explorer.bind("<<TreeviewSelect>>", self.explorer_item_click)
 
         yscrollbar = ttk.Scrollbar(
-            explorer_container, orient="vertical", command=explorer.yview
+            explorer_container, orient="vertical", command=self.explorer.yview
         )
         yscrollbar.grid(row=0, column=1, sticky=(N, S, W))
-        explorer.configure(yscrollcommand=yscrollbar.set)
+        self.explorer.configure(yscrollcommand=yscrollbar.set)
 
         explorer_container.grid_rowconfigure(0, weight=1)
         explorer_container.grid_columnconfigure(0, weight=1)
 
-        return explorer
+    def update_explorer(self, force: bool = False) -> None:
+        if force:
+            ids = self.explorer.get_children()
+            if len(ids) > 0:
+                self.explorer.delete(*ids)
 
-    def make_canvas(self) -> Canvas:
+        if self.current_file is not None:
+            for i, image in enumerate(self.current_file.images):
+                if self.explorer.exists(str(i)):
+                    self.explorer.item(
+                        str(i),
+                        text=f"{image.name}{'*' if image.modified else ''}",
+                        values=[f"{image.width}x{image.height}"],
+                    )
+                else:
+                    self.explorer.insert(
+                        "",
+                        "end",
+                        iid=str(i),
+                        text=f"{image.name}{'*' if image.modified else ''}",
+                        values=[f"{image.width}x{image.height}"],
+                    )
+    
+    def explorer_item_click(self, event) -> None:
+        self.draw_scale = self.INITIAL_DRAW_SCALE
+        self.update()
+
+    def init_canvas(self) -> None:
         view = ttk.Frame(self, height=650, width=650)
         view.grid(column=1, row=0, sticky=(N, S, E, W))
 
@@ -406,43 +552,18 @@ class App(ttk.Frame):
         view.bind("<Button-4>", self.zoom_canvas_up)
         view.bind("<Button-5>", self.zoom_canvas_down)
 
-        canvas = Canvas(view, width=0, height=0, background="white")
-        canvas.place(in_=view, anchor="c", relx=0.5, rely=0.5)
-        canvas.bind("<Button-1>", self.click_canvas_b1)
-        canvas.bind("<B1-Motion>", self.click_canvas_b1)
-        canvas.bind("<ButtonRelease-1>", self.update)
-        canvas.bind("<Button-3>", self.click_canvas_b3)
-        canvas.bind("<B3-Motion>", self.click_canvas_b3)
-        canvas.bind("<ButtonRelease-3>", self.update)
+        self.canvas = Canvas(view, width=0, height=0, background="white")
+        self.canvas.place(in_=view, anchor="c", relx=0.5, rely=0.5)
+        self.canvas.bind("<Button-1>", self.click_canvas_b1)
+        self.canvas.bind("<B1-Motion>", self.click_canvas_b1)
+        self.canvas.bind("<ButtonRelease-1>", self.update)
+        self.canvas.bind("<Button-3>", self.click_canvas_b3)
+        self.canvas.bind("<B3-Motion>", self.click_canvas_b3)
+        self.canvas.bind("<ButtonRelease-3>", self.update)
 
-        canvas.bind("<MouseWheel>", self.zoom_canvas)
-        canvas.bind("<Button-4>", self.zoom_canvas_up)
-        canvas.bind("<Button-5>", self.zoom_canvas_down)
-
-        return canvas
-
-    def update(self, *args, force: bool = False) -> None:
-        self.update_menus()
-        self.update_canvas()
-        self.update_explorer(force)
-        self.update_title()
-
-    def update_menus(self) -> None:
-        for file_index in [2, 3, 4]:
-            self.menu_file.entryconfigure(
-                file_index,
-                state=("normal" if self.current_file is not None else "disabled"),
-            )
-        for edit_index in [0]:
-            self.menu_edit.entryconfigure(
-                edit_index,
-                state=("normal" if self.current_file is not None else "disabled"),
-            )
-        for edit_index in [1, 2, 3, 4, 5, 6]:
-            self.menu_edit.entryconfigure(
-                edit_index,
-                state=("normal" if self.current_image is not None else "disabled"),
-            )
+        self.canvas.bind("<MouseWheel>", self.zoom_canvas)
+        self.canvas.bind("<Button-4>", self.zoom_canvas_up)
+        self.canvas.bind("<Button-5>", self.zoom_canvas_down)
 
     def update_canvas(self) -> None:
         image = self.current_image
@@ -470,29 +591,6 @@ class App(ttk.Frame):
                             fill="black",
                             outline="",
                         )
-
-    def update_explorer(self, force: bool = False) -> None:
-        if force:
-            ids = self.explorer.get_children()
-            if len(ids) > 0:
-                self.explorer.delete(*ids)
-
-        if self.current_file is not None:
-            for i, image in enumerate(self.current_file.images):
-                if self.explorer.exists(str(i)):
-                    self.explorer.item(
-                        str(i),
-                        text=f"{image.name}{'*' if image.modified else ''}",
-                        values=[f"{image.width}x{image.height}"],
-                    )
-                else:
-                    self.explorer.insert(
-                        "",
-                        "end",
-                        iid=str(i),
-                        text=f"{image.name}{'*' if image.modified else ''}",
-                        values=[f"{image.width}x{image.height}"],
-                    )
 
     def update_title(self) -> None:
         title = "Watchy Image Editor"
@@ -541,62 +639,11 @@ class App(ttk.Frame):
         self.draw_scale /= 2
         self.update_canvas()
 
-    def save_file(self, path: Optional[str] = None) -> None:
-        if path == "":
-            path = filedialog.asksaveasfilename()
-        self.current_file.export(path)
-        self.open_file(path)
-
-    def open_file(self, path: Optional[str]) -> None:
-        if path is None:
-            self.current_file = None
-        else:
-            self.current_file = File(path if path != "" else None)
-        self.update(True)
-
-    def add_image(self) -> None:
-        pass  # TODO
-
-    def delete_image(self) -> None:
-        pass  # TODO
-
-    def edit_image_name(self) -> None:
-        pass  # TODO
-
-    def move_image_up(self) -> None:
-        pass  # TODO
-
-    def move_image_down(self) -> None:
-        pass  # TODO
-
-    def import_bmp(self) -> None:
-        if self.current_image is None:
-            return
-        path = filedialog.askopenfilename(
-            filetypes=Bitmap.FILE_TYPES,
-            defaultextension=Bitmap.FILE_TYPES,
-        )
-        if path is not None:
-            # TODO error handling
-            self.current_image.import_bmp(path)
-            self.update()
-
-    def export_bmp(self) -> None:
-        if self.current_image is None:
-            return
-        path = filedialog.asksaveasfilename(
-            filetypes=Bitmap.FILE_TYPES,
-            defaultextension=Bitmap.FILE_TYPES,
-            initialfile=f"{self.current_image.name}.bmp",
-        )
-        if path is not None:
-            self.current_image.export_bmp(path)
-
 
 if __name__ == "__main__":
     app = App(Tk())
 
-    # TODO remove
+    # TODO remove debug
     app.open_file("../watchfaces/tetris-2.0/tetris.h")
 
     app.mainloop()
