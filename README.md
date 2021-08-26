@@ -1,6 +1,25 @@
 # Klemek's Watchy
 
-Soon some watchfaces ...
+## Watchfaces
+
+### Tetris 2.0
+
+A better skin for Tetris!
+
+(before)
+![before](./watchfaces/tetris-2.0/old-preview.png)
+
+(after)
+![after](./watchfaces/tetris-2.0/preview.png)
+
+* "Score" is number of steps
+* "Level" is battery level (0 - 100%)
+* "Lines" is current date (day + month)
+
+
+
+## Tool
+
 
 Meanwhile I'm making an editor for images (WIP) :
 
