@@ -1,8 +1,20 @@
 #include "Watchy_Tetris.h"
 
-const unsigned char *tetris_nums[10] = {tetris0, tetris1, tetris2, tetris3, tetris4, tetris5, tetris6, tetris7, tetris8, tetris9};
+const unsigned char *tetris_nums_0[3] = {tetris0_0, tetris1_0, tetris2_0};
+const unsigned char *tetris_nums_1[10] = {tetris0_1, tetris1_1, tetris2_1, tetris3_1, tetris4_1, tetris5_1, tetris6_1, tetris7_1, tetris8_1, tetris9_1};
+const unsigned char *tetris_nums_2[6] = {tetris0_2, tetris1_2, tetris2_2, tetris3_2, tetris4_2, tetris5_2};
+const unsigned char *tetris_nums_3[10] = {tetris0_3, tetris1_3, tetris2_3, tetris3_3, tetris4_3, tetris5_3, tetris6_3, tetris7_3, tetris8_3, tetris9_3};
 
 const unsigned char *tetris_small_nums[10] = {tetrissmall0, tetrissmall1, tetrissmall2, tetrissmall3, tetrissmall4, tetrissmall5, tetrissmall6, tetrissmall7, tetrissmall8, tetrissmall9};
+
+const unsigned char *pieces[28] = {
+    piece0_0, piece0_1, piece0_0, piece0_1,
+    piece1_0, piece1_1, piece1_0, piece1_1,
+    piece2_0, piece2_1, piece2_2, piece2_3,
+    piece3_0, piece3_1, piece3_2, piece3_3,
+    piece4_0, piece4_1, piece4_0, piece4_1,
+    piece5_0, piece5_0, piece5_0, piece5_0,
+    piece6_0, piece6_1, piece6_2, piece6_3};
 
 const float MAX_VBAT = 4.30;
 const float MIN_VBAT = 3.80;
@@ -19,12 +31,12 @@ void WatchyTetris::drawWatchFace()
     display.drawBitmap(0, 0, tetrisbg, DISPLAY_WIDTH, DISPLAY_HEIGHT, GxEPD_BLACK);
 
     //Hour
-    display.drawBitmap(25, 20, tetris_nums[currentTime.Hour / 10], 40, 60, GxEPD_BLACK); //first digit
-    display.drawBitmap(75, 20, tetris_nums[currentTime.Hour % 10], 40, 60, GxEPD_BLACK); //second digit
+    display.drawBitmap(25, 20, tetris_nums_0[currentTime.Hour / 10], 40, 60, GxEPD_BLACK); //first digit
+    display.drawBitmap(75, 20, tetris_nums_1[currentTime.Hour % 10], 40, 60, GxEPD_BLACK); //second digit
 
     //Minute
-    display.drawBitmap(25, 110, tetris_nums[currentTime.Minute / 10], 40, 60, GxEPD_BLACK); //first digit
-    display.drawBitmap(75, 110, tetris_nums[currentTime.Minute % 10], 40, 60, GxEPD_BLACK); //second digit
+    display.drawBitmap(25, 110, tetris_nums_2[currentTime.Minute / 10], 40, 60, GxEPD_BLACK); //first digit
+    display.drawBitmap(75, 110, tetris_nums_3[currentTime.Minute % 10], 40, 60, GxEPD_BLACK); //second digit
 
     //Steps
     if (currentTime.Hour == 0 && currentTime.Minute == 1)
@@ -45,6 +57,9 @@ void WatchyTetris::drawWatchFace()
 
     //Date
     drawNumber(176, 111, currentTime.Day * 100 + currentTime.Month, 4);
+
+    //Random piece
+    display.drawBitmap(150, 140, pieces[int(random() * 28)], 40, 40, GxEPD_BLACK);
 }
 
 void WatchyTetris::drawNumber(int x, int y, int value, int max_digits)
@@ -56,4 +71,11 @@ void WatchyTetris::drawNumber(int x, int y, int value, int max_digits)
         if (value == 0)
             break;
     }
+}
+
+double WatchyTetris::random()
+{
+    uint32_t seed = currentTime.Minute + currentTime.Hour * 100 + currentTime.Day * 10000 + currentTime.Month * 1000000 + currentTime.Year * 100000000;
+    double v = pow(seed, 6.0 / 7.0);
+    return v - floor(v);
 }

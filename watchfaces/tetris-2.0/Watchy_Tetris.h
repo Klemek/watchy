@@ -10,6 +10,7 @@ public:
     WatchyTetris();
     void drawWatchFace();
     void drawNumber(int x, int y, int value, int max_digits);
+    double random();
 };
 
 #endif
