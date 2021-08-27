@@ -220,14 +220,25 @@ class App(ttk.Frame):
             self.open_file(path)
 
     def _file_save(self) -> None:
-        self.save_file(self.current_file.path)
+        if self.current_file.path is None:
+            self._file_save_as()
+        else:
+            self.save_file(self.current_file.path)
 
     def _file_save_as(self) -> None:
         path = filedialog.asksaveasfilename(
             filetypes=File.FILE_TYPES,
             defaultextension=File.FILE_TYPES,
-            initialfile=os.path.basename(self.current_file.path),
-            initialdir=os.path.dirname(self.current_file.path),
+            initialfile=(
+                os.path.basename(self.current_file.path)
+                if self.current_file.path is not None
+                else None
+            ),
+            initialdir=(
+                os.path.dirname(self.current_file.path)
+                if self.current_file.path is not None
+                else None
+            ),
         )
         if path:
             self.save_file(path)
