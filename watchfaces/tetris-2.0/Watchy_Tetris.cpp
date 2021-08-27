@@ -75,7 +75,13 @@ void WatchyTetris::drawNumber(int x, int y, int value, int max_digits)
 
 double WatchyTetris::random()
 {
-    uint32_t seed = currentTime.Minute + currentTime.Hour * 100 + currentTime.Day * 10000 + currentTime.Month * 1000000 + currentTime.Year * 100000000;
-    double v = pow(2000 * seed, 6.0 / 7.0);
+    uint32_t seed = currentTime.Year;
+    seed = seed * 12 + currentTime.Month;
+    seed = seed * 31 + currentTime.Day;
+    seed = seed * 24 + currentTime.Hour;
+    seed = seed * 60 + currentTime.Minute;
+
+    double v = pow(20 * seed, 6.0 / 7.0);
+    v *= sin(v) + 1;
     return v - floor(v);
 }
