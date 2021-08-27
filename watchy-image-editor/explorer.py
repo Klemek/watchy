@@ -10,6 +10,7 @@ class Explorer(ttk.Frame):
         super().__init__(parent)
 
         self.current_file = None
+        self.current_id = None
         self.update_callback = update_callback
 
         self.explorer = ttk.Treeview(self, columns=("size"))
@@ -29,16 +30,34 @@ class Explorer(ttk.Frame):
 
     @property
     def current_image(self) -> Optional[Image]:
-        if self.current_file is None or self.explorer.focus() == "":
+        if self.current_file is None or self.current_id is None:
             return None
         else:
-            return self.current_file.images[int(self.explorer.focus())]
+            return self.current_file.images[self.current_id]
+
+    @property
+    def size(self) -> int:
+        if self.current_file is None:
+            return 0
+        else:
+            return len(self.current_file.images)
+
+    def focus(self, id: int) -> None:
+        if self.current_file is not None and id >= 0 and id < self.size:
+            self.current_id = id
+            self.explorer.selection_set(str(id))
 
     def update(self, file: File, force: bool):
+        focus_id = self.current_id
+
         if force or file != self.current_file:
+            focus_id = 0
+            if file is not None and file == self.current_file:
+                focus_id = self.current_id
             ids = self.explorer.get_children()
             if len(ids) > 0:
                 self.explorer.delete(*ids)
+            self.current_id = None
 
         self.current_file = file
 
@@ -58,6 +77,12 @@ class Explorer(ttk.Frame):
                         text=f"{image.name}{'*' if image.modified else ''}",
                         values=[f"{image.width}x{image.height}"],
                     )
+            if self.size > 0 and (focus_id != self.current_id or force):
+                self.focus(focus_id)
 
     def explorer_item_click(self, event) -> None:
+        if self.current_file is None or len(self.explorer.selection()) == 0:
+            self.current_id = None
+        else:
+            self.current_id = int(self.explorer.selection()[0])
         self.update_callback()
