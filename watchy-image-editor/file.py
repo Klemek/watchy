@@ -62,3 +62,9 @@ class File:
         with open(path, mode="w") as f:
             for image in self.images:
                 f.write(image.export_cpp())
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, self.__class__):
+            return self.path == other.path
+        else:
+            return False

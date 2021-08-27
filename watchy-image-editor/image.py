@@ -41,7 +41,6 @@ class Image:
     def set_pixel(self, x: int, y: int, v: bool) -> None:
         position = self.__get_position(x, y)
         chunk_id = position // 8
-        # TODO fix, invalid chunk id when drawing
         if v != self.get_pixel(x, y):
             if v:
                 self.data[chunk_id] |= 1 << (7 - position % 8)

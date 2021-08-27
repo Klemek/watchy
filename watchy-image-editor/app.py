@@ -219,7 +219,7 @@ class App(ttk.Frame):
             self.open_file(path)
 
     def _file_save(self) -> None:
-        self.save_file()
+        self.save_file(self.current_file.path)
 
     def _file_save_as(self) -> None:
         path = filedialog.asksaveasfilename(

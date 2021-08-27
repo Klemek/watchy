@@ -77,7 +77,7 @@ class Explorer(ttk.Frame):
                         text=f"{image.name}{'*' if image.modified else ''}",
                         values=[f"{image.width}x{image.height}"],
                     )
-            if self.size > 0 and (focus_id != self.current_id or force):
+            if self.size > 0 and focus_id != self.current_id:
                 self.focus(focus_id)
 
     def explorer_item_click(self, event) -> None:
