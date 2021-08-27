@@ -16,8 +16,8 @@ class Explorer(ttk.Frame):
         self.explorer = ttk.Treeview(self, columns=("size"))
         self.explorer.heading("#0", text="name")
         self.explorer.heading("size", text="size")
-        self.explorer.column("#0", width=100, anchor="w")
-        self.explorer.column("size", width=100, anchor="w")
+        self.explorer.column("#0", width=150, anchor="w")
+        self.explorer.column("size", width=80, anchor="w")
         self.explorer.grid(row=0, column=0, sticky="nsw")
         self.explorer.bind("<<TreeviewSelect>>", self.explorer_item_click)
 
@@ -46,6 +46,29 @@ class Explorer(ttk.Frame):
         if self.current_file is not None and id >= 0 and id < self.size:
             self.current_id = id
             self.explorer.selection_set(str(id))
+
+    def move_up(self) -> None:
+        if self.current_id > 0:
+            id = self.current_id
+            images = self.current_file.images
+            images[id], images[id - 1] = images[id - 1], images[id]
+            self.current_id -= 1
+            self.focus(self.current_id)
+            self.update(self.current_file, False)
+
+    def move_down(self) -> None:
+        if self.current_id < self.size - 1:
+            id = self.current_id
+            images = self.current_file.images
+            images[id], images[id + 1] = images[id + 1], images[id]
+            self.current_id += 1
+            self.focus(self.current_id)
+            self.update(self.current_file, False)
+
+    def delete(self) -> None:
+        del self.current_file.images[self.current_id]
+        self.current_id = min(self.current_id, self.size - 1)
+        self.update(self.current_file, True)
 
     def update(self, file: File, force: bool):
         focus_id = self.current_id
@@ -77,7 +100,7 @@ class Explorer(ttk.Frame):
                         text=f"{image.name}{'*' if image.modified else ''}",
                         values=[f"{image.width}x{image.height}"],
                     )
-            if self.size > 0 and focus_id != self.current_id:
+            if self.size > 0 and (focus_id != self.current_id or force):
                 self.focus(focus_id)
 
     def explorer_item_click(self, event) -> None:

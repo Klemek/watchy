@@ -11,7 +11,7 @@ class Image:
         self.height = height
         self.modified = False
         if empty:
-            self.data = [0] * (width * height) // 8
+            self.data = [0] * ((width * height) // 8)
             self.modified = True
         else:
             self.data = []

@@ -1,14 +1,15 @@
 import tkinter as tk
-from tkinter import ttk, filedialog
+from tkinter import ttk, filedialog, messagebox
 from typing import Optional
 from enum import Enum
 import os.path
 
 from explorer import Explorer
 from image_view import ImageView
+from input_popup import InputPopup
 from file import File
 from image import Image
-from bitmap import Bitmap
+from bitmap import Bitmap, BitmapError
 
 
 class MenuEntryType(Enum):
@@ -32,16 +33,16 @@ class App(ttk.Frame):
                 "New image...",
                 "_file_new_image",
                 MenuEntryType.NEED_FILE,
-            ),  # TODO _file_new_image
+            ),
             ("", "", MenuEntryType.SEPARATOR),
-            ("Quit", "_file_quit", MenuEntryType.DEFAULT),  # TODO _file_quit
+            ("Quit", "_file_quit", MenuEntryType.DEFAULT),
         ],
         "Image": [
             (
                 "Edit Image Name...",
                 "_image_edit_name",
                 MenuEntryType.NEED_IMAGE,
-            ),  # TODO _image_edit_name
+            ),
             (
                 "Edit Image Size...",
                 "_image_edit_size",
@@ -51,17 +52,17 @@ class App(ttk.Frame):
                 "Move Image Up",
                 "_image_move_up",
                 MenuEntryType.NEED_IMAGE,
-            ),  # TODO _image_move_up
+            ),
             (
                 "Move Image Down",
                 "_image_move_down",
                 MenuEntryType.NEED_IMAGE,
-            ),  # TODO _image_move_down
+            ),
             (
                 "Delete Image",
                 "_image_delete",
                 MenuEntryType.NEED_IMAGE,
-            ),  # TODO _image_delete
+            ),
         ],
         "Bitmap": [
             (
@@ -234,15 +235,50 @@ class App(ttk.Frame):
     def _file_close(self) -> None:
         self.open_file(None)
 
+    def _file_new_image(self) -> None:
+        popup = InputPopup(
+            self,
+            title="New image",
+            message="Please enter image name",
+        )
+        if popup.value:
+            self.current_file.images += [Image(popup.value, 20, 20, empty=True)]
+            self.update()
+
+    def _file_quit(self) -> None:
+        self.parent.destroy()
+
+    def _image_edit_name(self) -> None:
+        popup = InputPopup(
+            self,
+            title="Edit image name",
+            message="Please enter image name",
+            initial_value=self.explorer.current_image.name,
+        )
+        if popup.value:
+            self.explorer.current_image.name = popup.value
+            self.update()
+
+    def _image_move_up(self) -> None:
+        self.explorer.move_up()
+
+    def _image_move_down(self) -> None:
+        self.explorer.move_down()
+
+    def _image_delete(self) -> None:
+        self.explorer.delete()
+
     def _bmp_import_image(self) -> None:
         path = filedialog.askopenfilename(
             filetypes=Bitmap.FILE_TYPES,
             defaultextension=Bitmap.FILE_TYPES,
         )
         if path:
-            # TODO error handling
-            self.current_image.import_bmp(path)
-            self.update()
+            try:
+                self.current_image.import_bmp(path)
+                self.update()
+            except BitmapError as e:
+                messagebox.showerror(title="Bitmap import error", message=str(e))
 
     def _bmp_export_image(self) -> None:
         path = filedialog.asksaveasfilename(
