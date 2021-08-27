@@ -7,13 +7,13 @@ const unsigned char *tetris_nums_3[10] = {tetris0_3, tetris1_3, tetris2_3, tetri
 
 const unsigned char *tetris_small_nums[10] = {tetrissmall0, tetrissmall1, tetrissmall2, tetrissmall3, tetrissmall4, tetrissmall5, tetrissmall6, tetrissmall7, tetrissmall8, tetrissmall9};
 
-const unsigned char *pieces[28] = {
-    piece0_0, piece0_1, piece0_0, piece0_1,
-    piece1_0, piece1_1, piece1_0, piece1_1,
+const unsigned char *pieces[19] = {
+    piece0_0, piece0_1,
+    piece1_0, piece1_1,
     piece2_0, piece2_1, piece2_2, piece2_3,
     piece3_0, piece3_1, piece3_2, piece3_3,
-    piece4_0, piece4_1, piece4_0, piece4_1,
-    piece5_0, piece5_0, piece5_0, piece5_0,
+    piece4_0, piece4_1,
+    piece5_0,
     piece6_0, piece6_1, piece6_2, piece6_3};
 
 const float MAX_VBAT = 4.30;
@@ -59,7 +59,7 @@ void WatchyTetris::drawWatchFace()
     drawNumber(176, 111, currentTime.Day * 100 + currentTime.Month, 4);
 
     //Random piece
-    display.drawBitmap(150, 140, pieces[int(random() * 28)], 40, 40, GxEPD_BLACK);
+    display.drawBitmap(150, 140, pieces[int(random() * 19)], 40, 40, GxEPD_BLACK);
 }
 
 void WatchyTetris::drawNumber(int x, int y, int value, int max_digits)
