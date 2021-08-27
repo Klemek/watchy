@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import re
 import os.path
 
@@ -24,6 +24,12 @@ class File:
     @property
     def modified(self) -> bool:
         return any(image.modified for image in self.images)
+
+    def search(self, name) -> Optional[Image]:
+        for image in self.images:
+            if image.name == name:
+                return image
+        return None
 
     def __read_file(self) -> List[Image]:
         images = []

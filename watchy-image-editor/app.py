@@ -69,12 +69,12 @@ class App(ttk.Frame):
                 "Bulk .bmp Import...",
                 "_bmp_import_all",
                 MenuEntryType.NEED_FILE,
-            ),  # TODO _bmp_import_all
+            ),
             (
                 "Export All To .bmp...",
                 "_bmp_export_all",
                 MenuEntryType.NEED_FILE,
-            ),  # TODO _bmp_export_all
+            ),
             ("", "", MenuEntryType.SEPARATOR),
             (
                 "Import .bmp Into Image...",
@@ -267,6 +267,30 @@ class App(ttk.Frame):
 
     def _image_delete(self) -> None:
         self.explorer.delete()
+
+    def _bmp_import_all(self) -> None:
+        paths = filedialog.askopenfilenames(
+            filetypes=Bitmap.FILE_TYPES,
+            defaultextension=Bitmap.FILE_TYPES,
+        )
+        if paths and len(paths) > 0:
+            for path in paths:
+                name = os.path.basename(path).rstrip(".bmp")
+                image = self.current_file.search(name)
+                if image is None:
+                    image = Image(name, 20, 20, empty=True)
+                    self.current_file.images += [image]
+                try:
+                    image.import_bmp(path)
+                except BitmapError as e:
+                    pass
+            self.update()
+
+    def _bmp_export_all(self) -> None:
+        dir_path = filedialog.askdirectory()
+        if dir_path:
+            for image in self.current_file.images:
+                image.export_bmp(os.path.join(dir_path, f"{image.name}.bmp"))
 
     def _bmp_import_image(self) -> None:
         path = filedialog.askopenfilename(
