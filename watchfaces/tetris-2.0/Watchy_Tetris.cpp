@@ -81,7 +81,8 @@ double WatchyTetris::random()
     seed = seed * 24 + currentTime.Hour;
     seed = seed * 60 + currentTime.Minute;
 
-    double v = pow(20 * seed, 6.0 / 7.0);
+    double v = pow(seed, 6.0 / 7.0);
     v *= sin(v) + 1;
+
     return v - floor(v);
 }
