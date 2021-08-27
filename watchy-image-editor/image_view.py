@@ -18,10 +18,14 @@ class ImageView(ttk.Frame):
         self.canvas.place(in_=self, anchor="c", relx=0.5, rely=0.5)
         self.canvas.bind("<Button-1>", self.click_canvas_b1)
         self.canvas.bind("<B1-Motion>", self.click_canvas_b1)
-        self.canvas.bind("<ButtonRelease-1>", self.update)
+        self.canvas.bind(
+            "<ButtonRelease-1>", lambda event: self.update(self.current_image)
+        )
         self.canvas.bind("<Button-3>", self.click_canvas_b3)
         self.canvas.bind("<B3-Motion>", self.click_canvas_b3)
-        self.canvas.bind("<ButtonRelease-3>", self.update)
+        self.canvas.bind(
+            "<ButtonRelease-3>", lambda event: self.update(self.current_image)
+        )
 
         self.canvas.bind("<MouseWheel>", self.zoom_canvas)
         self.canvas.bind("<Button-4>", self.zoom_canvas_up)
@@ -41,24 +45,26 @@ class ImageView(ttk.Frame):
                 background="white",
             )
         else:
-            self.canvas.configure(
-                width=(image.width * self.draw_scale),
-                height=(image.height * self.draw_scale),
-                background="white",
-            )
-            # TODO fix / handle, "bad screen distance "??????""
-            self.canvas.delete("all")
-            for x in range(image.width):
-                for y in range(image.height):
-                    if image.get_pixel(x, y):
-                        self.canvas.create_rectangle(
-                            x * self.draw_scale + 1,
-                            y * self.draw_scale + 1,
-                            (x + 1) * self.draw_scale + 1,
-                            (y + 1) * self.draw_scale + 1,
-                            fill="black",
-                            outline="",
-                        )
+            try:
+                self.canvas.configure(
+                    width=(image.width * self.draw_scale),
+                    height=(image.height * self.draw_scale),
+                    background="white",
+                )
+                self.canvas.delete("all")
+                for x in range(image.width):
+                    for y in range(image.height):
+                        if image.get_pixel(x, y):
+                            self.canvas.create_rectangle(
+                                x * self.draw_scale + 1,
+                                y * self.draw_scale + 1,
+                                (x + 1) * self.draw_scale + 1,
+                                (y + 1) * self.draw_scale + 1,
+                                fill="black",
+                                outline="",
+                            )
+            except tk.TclError:
+                pass
         self.current_image = image
 
     def click_canvas_b1(self, event):
@@ -67,7 +73,7 @@ class ImageView(ttk.Frame):
     def click_canvas_b3(self, event):
         self.click_canvas(False, event)
 
-    def click_canvas(self, value, event):
+    def click_canvas(self, value: bool, event):
         if self.current_image is None:
             return
         x = int(event.x / self.draw_scale)
