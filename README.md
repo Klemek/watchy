@@ -11,6 +11,7 @@ A better skin for Tetris!
 * "Lines" is current date (day + month)
 * Digits patterns are not the same depending of the type (first digit of minutes, ...)
 * Random piece is drawn on the bottom-right each day (19 unique images)
+  * Find any day piece [here](https://klemek.github.io/watchy/)
 
 ![](./watchfaces/tetris-2.0/preview.png)
 
