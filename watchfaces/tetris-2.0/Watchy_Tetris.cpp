@@ -78,8 +78,6 @@ double WatchyTetris::random()
     uint32_t seed = currentTime.Year;
     seed = seed * 12 + currentTime.Month;
     seed = seed * 31 + currentTime.Day;
-    seed = seed * 24 + currentTime.Hour;
-    seed = seed * 60 + currentTime.Minute;
 
     double v = pow(seed, 6.0 / 7.0);
     v *= sin(v) + 1;
