@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Change this you moron</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="text/javascript" src="lib/vue.min.js"></script>
+    <script type="text/javascript" src="main.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- card related -->
+    <!--
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="og:title" content="">
+    <meta property="twitter:title" content="">
+    <meta property="og:description" content="">
+    <meta property="twitter:description" content="">
+    <meta property="og:image" content="https://.../preview_640x320.jpg">
+    <meta property="twitter:image" content="">
+    <meta property="org:url" content="https://...">
+    -->
+</head>
+<body>
+    <main id="app" style="display:none">
+        <h1>{{title}}</h1>
+        <h2>Tetris piece by day</h2>
+        <input type="date" v-model="tetris_input" />
+        <br>
+        <br>
+        <div class="tetris">
+            <img :src="tetris_path" />
+        </div>
+        <br>
+        <small><a href="https://twitter.com/_klemek" target="_blank">@Klemek</a> - <a href="https://github.com/Klemek/watchy">Github Repository</a> - 2021</small>
+    </main>
+</body>
+</html>

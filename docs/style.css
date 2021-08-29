@@ -1,0 +1,52 @@
+* {
+    box-sizing: border-box;
+    font-family: Verdana, serif;
+    color: #424242;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    max-width: 100%;
+}
+
+body {
+    background-color: #F5F5F5;
+}
+
+main {
+    padding: 1.5rem;
+    margin: auto;
+    background-color: #EEEEEE;
+    min-height: 100%;
+}
+
+h1 {
+    margin-bottom: .5em;
+}
+
+table{
+    border-collapse: collapse;
+    width:100%;
+    font-size: .9em;
+}
+
+@media only screen and (min-width: 768px) {
+    main {
+        max-width: 42rem;
+    }
+    table{
+        font-size:inherit;
+    }
+}
+
+.tetris {
+    background-color: #AEAEAE;
+    padding: 1em;
+    max-width: 10em;
+}
+
+.tetris img{
+    width: 100%;
+}
