@@ -36,16 +36,22 @@ class Image:
     def get_pixel(self, x: int, y: int) -> bool:
         position = self.__get_position(x, y)
         chunk_id = position // 8
-        return self.data[chunk_id] & (1 << (7 - position % 8)) > 0
+        try:
+            return self.data[chunk_id] & (1 << (7 - position % 8)) > 0
+        except:
+            return False
 
     def set_pixel(self, x: int, y: int, v: bool) -> None:
         position = self.__get_position(x, y)
         chunk_id = position // 8
         if v != self.get_pixel(x, y):
-            if v:
-                self.data[chunk_id] |= 1 << (7 - position % 8)
-            else:
-                self.data[chunk_id] &= ~(1 << (7 - position % 8))
+            try:
+                if v:
+                    self.data[chunk_id] |= 1 << (7 - position % 8)
+                else:
+                    self.data[chunk_id] &= ~(1 << (7 - position % 8))
+            except:
+                pass
             self.modified = True
 
     def __get_color_bytes(self) -> bytes:
