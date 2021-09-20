@@ -30,6 +30,8 @@ void WatchyTetris::drawWatchFace()
     // Background
     display.drawBitmap(0, 0, tetrisbg, DISPLAY_WIDTH, DISPLAY_HEIGHT, GxEPD_BLACK);
 
+    readWorldTime();
+
     //Hour
     display.drawBitmap(25, 20, tetris_nums_0[currentTime.Hour / 10], 40, 60, GxEPD_BLACK); //first digit
     display.drawBitmap(75, 20, tetris_nums_1[currentTime.Hour % 10], 40, 60, GxEPD_BLACK); //second digit
