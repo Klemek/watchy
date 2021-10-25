@@ -1,15 +1,16 @@
 #include "wta.h"
 
-RTC_DATA_ATTR int worldTimeIntervalCounter = WTA_UPDATE_INTERVAL;
+RTC_DATA_ATTR int worldTimeIntervalCounter = 0;
 
 void WatchySynced::readWorldTime()
 {
-    if (worldTimeIntervalCounter >= WTA_UPDATE_INTERVAL)
+    if (worldTimeIntervalCounter == 0)
     {
+        worldTimeIntervalCounter = WTA_UPDATE_SHORT_INTERVAL;
         if (connectWiFi())
         {
             HTTPClient http;
-            http.setConnectTimeout(10000);
+            http.setConnectTimeout(WTA_UPDATE_TIMEOUT);
             String queryURL = String(WTA_URL) + String(WTA_TIMEZONE);
             http.begin(queryURL.c_str());
             int httpResponseCode = http.GET();
@@ -28,15 +29,15 @@ void WatchySynced::readWorldTime()
                 time_t t = makeTime(tm);
                 RTC.set(t);
                 RTC.read(currentTime);
+                worldTimeIntervalCounter = WTA_UPDATE_LONG_INTERVAL;
             }
             http.end();
             WiFi.mode(WIFI_OFF);
             btStop();
         }
-        worldTimeIntervalCounter = 0;
     }
     else
     {
-        worldTimeIntervalCounter++;
+        worldTimeIntervalCounter = worldTimeIntervalCounter < 0 ? 0 : worldTimeIntervalCounter - 1;
     }
 }

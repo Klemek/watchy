@@ -66,7 +66,7 @@ void WatchyTetris::drawWatchFace()
 
 void WatchyTetris::drawNumber(int x, int y, int value, int max_digits)
 {
-    for (int8_t i = 0; i <= max_digits; i++)
+    for (int8_t i = 0; i < max_digits; i++)
     {
         display.drawBitmap(x - i * 10, y, tetris_small_nums[value % 10], 8, 8, GxEPD_BLACK);
         value /= 10;

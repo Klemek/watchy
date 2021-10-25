@@ -5,9 +5,6 @@
 #include "tetris.h"
 #include "wta.h"
 
-#undef WTA_TIMEZONE
-#define WTA_TIMEZONE "Europe/Paris"
-
 class WatchyTetris : public WatchySynced
 {
 public:
