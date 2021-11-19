@@ -15,6 +15,23 @@ A better skin for Tetris!
 
 ![](./watchfaces/tetris-2.0/preview.png)
 
+### Pokemon 2.0
+
+A better skin for Tetris!
+
+* Wild Pokemon
+  * Changes every hour
+  * Bar is decreasing in an hour
+  * Level is 100 steps
+* Owned Pokemon
+  * Changes every day
+  * Bar is decreasing in a day
+  * Level is battery level
+  * HP is current date
+
+![](./watchfaces/pokemon-2.0/preview.png)
+
+
 ### beLow
 
 [https://below.black]
