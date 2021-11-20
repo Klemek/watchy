@@ -34,6 +34,10 @@ void WatchyPokemon::drawWatchFace(){
     if (percent > 100)
         percent = 100;
 
+    //Save battery life
+    WiFi.mode(WIFI_OFF);
+    btStop();
+
     // BG
     display.fillScreen(GxEPD_WHITE);
     display.drawBitmap(0, 0, pokemon, DISPLAY_WIDTH, DISPLAY_HEIGHT, GxEPD_BLACK);
@@ -97,7 +101,7 @@ void WatchyPokemon::drawWatchFace(){
     // HOUR
     display.setFont(&FreeMonoBold10pt7b);
     #ifdef FR
-    display.setCursor(11, 165);
+    display.setCursor(14, 165);
     #else
     display.setCursor(14, 165);
     #endif
@@ -110,6 +114,30 @@ void WatchyPokemon::drawWatchFace(){
         display.print('0');
     }
     display.print(currentTime.Minute);
+
+    // CURSOR
+    int pos = int(randomMinute() * 4);
+    int posX = pos % 2;
+    int posY = int(pos / 2);
+    #ifdef FR
+    display.drawBitmap(86 + posX * 59, 148 + posY * 20, cursor, 8, 9, GxEPD_BLACK);
+    #else
+    display.drawBitmap(90 + posX * 61, 148 + posY * 20, cursor, 8, 9, GxEPD_BLACK);
+    #endif
+}
+
+double WatchyPokemon::randomMinute()
+{
+    uint32_t seed = currentTime.Year;
+    seed = seed * 12 + currentTime.Month;
+    seed = seed * 31 + currentTime.Day;
+    seed = seed * 24 + currentTime.Hour;
+    seed = seed * 60 + currentTime.Minute;
+
+    double v = pow(seed, 6.0 / 7.0);
+    v *= sin(v) + 1;
+
+    return v - floor(v);
 }
 
 double WatchyPokemon::randomHour()

@@ -25,12 +25,31 @@ WatchyTetris::WatchyTetris()
 
 void WatchyTetris::drawWatchFace()
 {
+    readWorldTime();
+
+    //Voltage
+    float VBAT = getBatteryVoltage();
+    uint32_t percent = (int)(100.0 * ((VBAT - MIN_VBAT) / (MAX_VBAT - MIN_VBAT)));
+    if (percent < 0)
+        percent = 0;
+    if (percent > 100)
+        percent = 100;
+
+    //Steps
+    if (currentTime.Hour == 0 && currentTime.Minute == 1)
+    {
+        sensor.resetStepCounter();
+    }
+    uint32_t stepCount = sensor.getCounter();
+
     display.fillScreen(GxEPD_WHITE);
+
+    //Save battery life
+    WiFi.mode(WIFI_OFF);
+    btStop();
 
     // Background
     display.drawBitmap(0, 0, tetrisbg, DISPLAY_WIDTH, DISPLAY_HEIGHT, GxEPD_BLACK);
-
-    readWorldTime();
 
     //Hour
     display.drawBitmap(25, 20, tetris_nums_0[currentTime.Hour / 10], 40, 60, GxEPD_BLACK); //first digit
@@ -40,21 +59,9 @@ void WatchyTetris::drawWatchFace()
     display.drawBitmap(25, 110, tetris_nums_2[currentTime.Minute / 10], 40, 60, GxEPD_BLACK); //first digit
     display.drawBitmap(75, 110, tetris_nums_3[currentTime.Minute % 10], 40, 60, GxEPD_BLACK); //second digit
 
-    //Steps
-    if (currentTime.Hour == 0 && currentTime.Minute == 1)
-    {
-        sensor.resetStepCounter();
-    }
-    uint32_t stepCount = sensor.getCounter();
+    
     drawNumber(181, 41, stepCount, 6);
 
-    //Voltage
-    float VBAT = getBatteryVoltage();
-    uint32_t percent = (int)(100.0 * ((VBAT - MIN_VBAT) / (MAX_VBAT - MIN_VBAT)));
-    if (percent < 0)
-        percent = 0;
-    if (percent > 100)
-        percent = 100;
     drawNumber(176, 81, percent, 3);
 
     //Date
