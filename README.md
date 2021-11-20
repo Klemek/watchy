@@ -4,6 +4,8 @@
 
 ### Tetris 2.0
 
+![](./watchfaces/tetris-2.0/preview.bmp)
+
 A better skin for Tetris!
 
 * "Score" is number of steps
@@ -13,11 +15,13 @@ A better skin for Tetris!
 * Random piece is drawn on the bottom-right each day (19 unique images)
   * Find any day piece [here](https://klemek.github.io/watchy/)
 
-![](./watchfaces/tetris-2.0/preview.png)
+
 
 ### Pokemon 2.0
 
-A better skin for Tetris!
+![](./watchfaces/pokemon-2.0/preview.bmp)
+
+A better skin for Pokemon!
 
 * Wild Pokemon
   * Changes every hour
@@ -27,16 +31,13 @@ A better skin for Tetris!
   * Changes every day
   * Bar is decreasing in a day
   * Level is battery level
-  * HP is current date
-
-![](./watchfaces/pokemon-2.0/preview.png)
-
+  * HP is current datec
 
 ### beLow
 
-[https://below.black]
+![](./watchfaces/below/preview.bmp)
 
-![](./watchfaces/below/preview.png)
+#### [below.black](https://below.black)
 
 ## Tool: Watchy Image Editor (WIP)
 

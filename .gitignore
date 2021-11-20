@@ -4,3 +4,4 @@ __pycache__
 *.bmp
 watchfaces/libraries
 watchfaces/pokemon-2.0/pokemon-src
+!watchfaces/*/preview.bmp
