@@ -16,7 +16,7 @@ const unsigned char *pieces[19] = {
     piece5_0,
     piece6_0, piece6_1, piece6_2, piece6_3};
 
-const float MAX_VBAT = 4.30;
+const float MAX_VBAT = 4.20;
 const float MIN_VBAT = 3.80;
 
 WatchyTetris::WatchyTetris()
