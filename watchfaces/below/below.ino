@@ -1,6 +1,7 @@
 #include "watchy_below.h"
+#include "settings.h"
 
-WatchyBelow watchy;
+WatchyBelow watchy(settings);
 
 void setup()
 {

@@ -13,8 +13,6 @@ const char *pokemon_names[151] = {"BULBASAUR","IVYSAUR","VENUSAUR","CHARMANDER",
 const float MAX_VBAT = 4.20;
 const float MIN_VBAT = 3.80;
 
-WatchyPokemon::WatchyPokemon(){} //constructor
-
 void WatchyPokemon::drawWatchFace(){
 
     readWorldTime();

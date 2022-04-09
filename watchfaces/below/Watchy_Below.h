@@ -3,12 +3,13 @@
 
 #include <Watchy.h>
 #include "below.h"
+#include "wta.h"
 
-class WatchyBelow : public Watchy
+class WatchyBelow : public WatchySynced
 {
-public:
-    WatchyBelow();
-    void drawWatchFace();
+    using WatchySynced::WatchySynced;
+    public:
+        void drawWatchFace();
 };
 
 #endif

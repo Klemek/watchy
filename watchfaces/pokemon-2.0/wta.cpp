@@ -20,14 +20,13 @@ void WatchySynced::readWorldTime()
                 JSONVar responseObject = JSON.parse(payload);
                 tmElements_t tm;
                 String datetime = String((const char *)responseObject["datetime"]);
-                tm.Year = datetime.substring(0, 4).toInt() - YEAR_OFFSET;
+                tm.Year = y2kYearToTm(datetime.substring(0, 4).toInt());
                 tm.Month = datetime.substring(5, 7).toInt();
                 tm.Day = datetime.substring(8, 10).toInt();
                 tm.Hour = datetime.substring(11, 13).toInt();
                 tm.Minute = datetime.substring(14, 16).toInt();
                 tm.Second = 0;
-                time_t t = makeTime(tm);
-                RTC.set(t);
+                RTC.set(tm);
                 RTC.read(currentTime);
                 worldTimeIntervalCounter = WTA_UPDATE_LONG_INTERVAL;
             }

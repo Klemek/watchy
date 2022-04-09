@@ -1,11 +1,9 @@
 #include "Watchy_Below.h"
 
-WatchyBelow::WatchyBelow()
-{
-} //constructor
-
 void WatchyBelow::drawWatchFace()
 {
+    readWorldTime();
+
     display.fillScreen(GxEPD_BLACK);
 
     display.drawBitmap(0, 0, background, DISPLAY_WIDTH, DISPLAY_HEIGHT, GxEPD_WHITE);

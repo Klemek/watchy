@@ -19,10 +19,6 @@ const unsigned char *pieces[19] = {
 const float MAX_VBAT = 4.20;
 const float MIN_VBAT = 3.80;
 
-WatchyTetris::WatchyTetris()
-{
-} //constructor
-
 void WatchyTetris::drawWatchFace()
 {
     readWorldTime();

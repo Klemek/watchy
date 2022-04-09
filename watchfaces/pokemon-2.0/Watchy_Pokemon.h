@@ -6,6 +6,8 @@
 #include "FreeMonoBold7pt7b.h"
 #include "wta.h"
 
+#define FR
+
 #ifdef FR
 #include "pokemon_fr.h"
 #else
@@ -14,12 +16,12 @@
 
 class WatchyPokemon : public WatchySynced
 {
-public:
-    WatchyPokemon();
-    void drawWatchFace();
-    double randomDay();
-    double randomHour();
-    double randomMinute();
+    using WatchySynced::WatchySynced;
+    public:
+        void drawWatchFace();
+        double randomDay();
+        double randomHour();
+        double randomMinute();
 };
 
 #endif

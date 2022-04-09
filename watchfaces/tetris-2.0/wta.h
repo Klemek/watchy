@@ -11,8 +11,9 @@
 
 class WatchySynced : public Watchy
 {
-public:
-    void readWorldTime();
+    using Watchy::Watchy;
+    public:
+        void readWorldTime();
 };
 
 #endif
